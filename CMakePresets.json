@@ -19,6 +19,7 @@
          "name": "debug",
          "displayName": "Debug",
          "inherits": "conan-default",
+         "toolchainFile": "${sourceDir}/build/debug/build/Debug/generators/conan_toolchain.cmake",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
             "BUILD_TESTS": "ON",
