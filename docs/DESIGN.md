@@ -59,7 +59,7 @@ The utilities library provides reusable components for common tasks:
 
 #### Proto Library (`src/proto/`)
 
-The protocol buffer library compiles `.proto` files into C++ classes:
+The protocol buffer library compiles `.proto` files from `src/proto/proto-messages/` into C++ classes:
 
 - **sensor_data.proto**: Sensor readings with metadata
 - **commands.proto**: Command/response pattern for RPC

@@ -18,9 +18,9 @@ StarterCpp/
 ├── src/
 │   ├── utils/              # Utility library (Logger, Timer, AsyncQueue)
 │   │   └── include/utils/  # Public headers
-│   ├── proto/              # Generated protobuf library
+│   ├── proto/              # Protocol buffer library
+│   │   └── proto-messages/ # .proto source files
 │   └── apps/               # Executables (publisher, subscriber)
-├── proto/                  # .proto source files
 ├── tests/                  # Unit tests
 ├── docs/                   # Documentation
 └── .github/                # CI/CD and this file
@@ -96,8 +96,8 @@ private:
 
 ### Adding a New Proto Message
 
-1. Create or edit file in `proto/` directory
-2. Add to `PROTO_FILES` in `src/proto/CMakeLists.txt`
+1. Create or edit file in `src/proto/proto-messages/` directory
+2. Proto files are auto-discovered via glob in `src/proto/CMakeLists.txt`
 3. Include generated header as `#include "message_name.pb.h"`
 
 ### Adding a New Application

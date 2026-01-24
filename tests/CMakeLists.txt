@@ -52,9 +52,12 @@ if(ENABLE_COVERAGE)
    find_program(GCOV_EXECUTABLE gcov)
 
    if(LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
+      # lcov 2.0+ with newer GCC requires ignoring some inconsistencies
+      set(LCOV_IGNORE_ERRORS --ignore-errors inconsistent,mismatch,unused,negative)
+
       # Create coverage target
       add_custom_target(coverage
-         COMMAND ${LCOV_EXECUTABLE} --zerocounters --directory ${CMAKE_BINARY_DIR}
+         COMMAND ${LCOV_EXECUTABLE} --zerocounters --directory ${CMAKE_BINARY_DIR} ${LCOV_IGNORE_ERRORS}
          COMMAND ${CMAKE_COMMAND} -E echo "Running tests..."
          COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
          COMMAND ${LCOV_EXECUTABLE}
@@ -62,24 +65,26 @@ if(ENABLE_COVERAGE)
             --directory ${CMAKE_BINARY_DIR}
             --output-file ${CMAKE_BINARY_DIR}/coverage.info
             --gcov-tool ${GCOV_EXECUTABLE}
+            ${LCOV_IGNORE_ERRORS}
          COMMAND ${LCOV_EXECUTABLE}
             --remove ${CMAKE_BINARY_DIR}/coverage.info
-            '/usr/*'
-            '${CMAKE_BINARY_DIR}/*'
-            '*/test/*'
-            '*/tests/*'
+            /usr/*
+            ${CMAKE_BINARY_DIR}/*
+            */test/*
+            */tests/*
             --output-file ${CMAKE_BINARY_DIR}/coverage.info
+            ${LCOV_IGNORE_ERRORS}
          COMMAND ${GENHTML_EXECUTABLE}
             ${CMAKE_BINARY_DIR}/coverage.info
             --output-directory ${CMAKE_BINARY_DIR}/coverage_report
             --title "StarterCpp Coverage Report"
             --legend
             --demangle-cpp
+            ${LCOV_IGNORE_ERRORS}
          COMMAND ${CMAKE_COMMAND} -E echo "Coverage report: ${CMAKE_BINARY_DIR}/coverage_report/index.html"
          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
          DEPENDS unit_tests
          COMMENT "Generating code coverage report"
-         VERBATIM
       )
    else()
       message(WARNING "lcov/genhtml not found. Coverage report generation disabled.")

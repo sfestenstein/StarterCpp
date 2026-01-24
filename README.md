@@ -93,13 +93,14 @@ StarterCpp/
 │   │   ├── Timer.cpp       # Timer class
 │   │   └── AsyncQueue.cpp  # Thread-safe queue
 │   ├── proto/              # Protocol buffer library
+│   │   ├── CMakeLists.txt  # Proto build configuration
+│   │   └── proto-messages/ # Protocol buffer definitions
+│   │       ├── sensor_data.proto
+│   │       ├── commands.proto
+│   │       └── configuration.proto
 │   └── apps/               # Executables
 │       ├── publisher_main.cpp
 │       └── subscriber_main.cpp
-├── proto/                  # Protocol buffer definitions
-│   ├── sensor_data.proto
-│   ├── commands.proto
-│   └── configuration.proto
 ├── tests/                  # Unit tests
 ├── docs/                   # Documentation
 ├── .github/                # GitHub configuration
