@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Find protobuf compiler from Conan
-find_package(protobuf REQUIRED)
+find_package(protobuf REQUIRED CONFIG)
 find_program(PROTOC_EXECUTABLE
    NAMES protoc
    HINTS ${protobuf_PACKAGE_FOLDER_DEBUG}/bin ${protobuf_PACKAGE_FOLDER_RELEASE}/bin
@@ -11,11 +11,7 @@ find_program(PROTOC_EXECUTABLE
 )
 
 # Proto source files
-set(PROTO_FILES
-   ${CMAKE_SOURCE_DIR}/proto/sensor_data.proto
-   ${CMAKE_SOURCE_DIR}/proto/commands.proto
-   ${CMAKE_SOURCE_DIR}/proto/configuration.proto
-)
+file (GLOB PROTO_FILES ${CMAKE_CURRENT_LIST_DIR}/proto-messages/*.proto)
 
 # Output directories for generated files
 set(PROTO_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
@@ -37,7 +33,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
    add_custom_command(
       OUTPUT ${PROTO_SRC} ${PROTO_HDR}
       COMMAND ${PROTOC_EXECUTABLE}
-         --proto_path=${CMAKE_SOURCE_DIR}/proto
+         --proto_path=${CMAKE_CURRENT_LIST_DIR}/proto-messages
          --cpp_out=${PROTO_GENERATED_DIR}
          ${PROTO_FILE}
       DEPENDS ${PROTO_FILE}
@@ -54,10 +50,10 @@ add_library(proto_lib STATIC
 
 add_library(StarterCpp::proto ALIAS proto_lib)
 
-# Include directories
+# Include directories (SYSTEM suppresses warnings in generated headers)
 target_include_directories(proto_lib
-   PUBLIC
-      $<BUILD_INTERFACE:${PROTO_GENERATED_DIR}>
+   SYSTEM PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
       $<INSTALL_INTERFACE:include>
 )
 
