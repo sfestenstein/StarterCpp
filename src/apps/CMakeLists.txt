@@ -9,7 +9,7 @@ add_executable(publisher
 
 target_link_libraries(publisher
    PRIVATE
-      StarterCpp::utils
+      CommonUtils
       StarterCpp::proto
       cppzmq
 )
@@ -21,7 +21,7 @@ add_executable(subscriber
 
 target_link_libraries(subscriber
    PRIVATE
-      StarterCpp::utils
+      CommonUtils
       StarterCpp::proto
       cppzmq
 )

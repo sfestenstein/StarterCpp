@@ -46,7 +46,6 @@ option(ENABLE_CLANG_TIDY "Enable clang-tidy static analysis" OFF)
 set(GCC_WARNINGS
    -Wall
    -Wextra
-   -Wpedantic
    -Wshadow
    -Wnon-virtual-dtor
    -Wold-style-cast
@@ -150,7 +149,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # =============================================================================
 
 # Utility library
-add_subdirectory(src/utils)
+add_subdirectory(src/CommonUtils)
 
 # Protocol buffer library
 add_subdirectory(src/proto)
@@ -161,7 +160,7 @@ add_subdirectory(src/apps)
 # Tests
 if(BUILD_TESTS)
    enable_testing()
-   add_subdirectory(tests)
+   add_subdirectory(tests/CommonUtilsTests)
 endif()
 
 # =============================================================================
@@ -170,7 +169,7 @@ endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS utils proto_lib
+install(TARGETS CommonUtils proto_lib
    EXPORT StarterCppTargets
    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

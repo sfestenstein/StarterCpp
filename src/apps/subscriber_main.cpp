@@ -11,23 +11,27 @@
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <ctime>
 #include <atomic>
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <cstdint>
+#include <exception>
 
 #include <zmq.hpp>
 
-#include "utils/Logger.hpp"
+#include "GeneralLogger.h"
 #include "sensor_data.pb.h"
 
 namespace
 {
-   std::atomic<bool> g_running{true};
+   std::atomic<bool> running{true};
 
-   void signalHandler(int signal)
+   void signalHandler(int /*signal*/)
    {
-      utils::Logger::info("Received signal {}, shutting down...", signal);
-      g_running = false;
+      GPINFO("SubscriberLog");
+      running = false;
    }
 
    /**
@@ -41,7 +45,8 @@ namespace
       auto timeT = std::chrono::system_clock::to_time_t(time);
 
       std::stringstream ss;
-      ss << std::put_time(std::localtime(&timeT), "%Y-%m-%d %H:%M:%S");
+      std::tm tmBuf{};
+      ss << std::put_time(localtime_r(&timeT, &tmBuf), "%Y-%m-%d %H:%M:%S");
 
       // Add milliseconds
       auto ms = timestampMs % 1000;
@@ -67,18 +72,27 @@ namespace
    }
 }
 
-int main(int argc, char* argv[])
+int main(int /*argc*/, char* /*argv*/[])
 {
    // Initialize logger
-   utils::Logger::init("Subscriber", utils::LogLevel::Debug);
+   CommonUtils::GeneralLogger logger;
+   logger.init("SubscriberLog");
 
-   utils::Logger::info("===========================================");
-   utils::Logger::info("StarterCpp ZeroMQ Subscriber");
-   utils::Logger::info("===========================================");
+   GPINFO("===========================================");
+   GPINFO("StarterCpp ZeroMQ Subscriber");
+   GPINFO("===========================================");
 
    // Setup signal handling for graceful shutdown
-   std::signal(SIGINT, signalHandler);
-   std::signal(SIGTERM, signalHandler);
+   if (std::signal(SIGINT, signalHandler) == SIG_ERR)
+   {
+      GPERROR("Failed to set SIGINT handler");
+      return EXIT_FAILURE;
+   }
+   if (std::signal(SIGTERM, signalHandler) == SIG_ERR)
+   {
+      GPERROR("Failed to set SIGTERM handler");
+      return EXIT_FAILURE;
+   }
 
    try
    {
@@ -95,14 +109,14 @@ int main(int argc, char* argv[])
       // Set receive timeout so we can check for shutdown
       socket.set(zmq::sockopt::rcvtimeo, 500);
 
-      utils::Logger::info("Subscriber connected to {}", endpoint);
-      utils::Logger::info("Waiting for messages...");
-      utils::Logger::info("Press Ctrl+C to stop");
-      utils::Logger::info("-------------------------------------------");
+      GPINFO("Subscriber connected to {}", endpoint);
+      GPINFO("Waiting for messages...");
+      GPINFO("Press Ctrl+C to stop");
+      GPINFO("-------------------------------------------");
 
       int messageCount = 0;
 
-      while (g_running)
+      while (running)
       {
          zmq::message_t message;
          auto result = socket.recv(message, zmq::recv_flags::none);
@@ -117,37 +131,37 @@ int main(int argc, char* argv[])
          messages::SensorReading reading;
          if (!reading.ParseFromArray(message.data(), static_cast<int>(message.size())))
          {
-            utils::Logger::warn("Failed to parse received message");
+            GPWARN("Failed to parse received message");
             continue;
          }
 
          ++messageCount;
 
          // Log the received data using spdlog
-         utils::Logger::info("-------------------------------------------");
-         utils::Logger::info("Message #{} received", messageCount);
-         utils::Logger::info("  Sensor ID:   {}", reading.sensor_id());
-         utils::Logger::info("  Sensor Name: {}", reading.sensor_name());
-         utils::Logger::info("  Value:       {:.2f} {}", reading.value(), reading.unit());
-         utils::Logger::info("  Quality:     {}%", reading.quality());
-         utils::Logger::info("  Status:      {}", sensorStatusToString(reading.status()));
-         utils::Logger::info("  Timestamp:   {}", formatTimestamp(reading.timestamp_ms()));
+         GPINFO("-------------------------------------------");
+         GPINFO("Message #{} received", messageCount);
+         GPINFO("  Sensor ID:   {}", reading.sensor_id());
+         GPINFO("  Sensor Name: {}", reading.sensor_name());
+         GPINFO("  Value:       {:.2f} {}", reading.value(), reading.unit());
+         GPINFO("  Quality:     {}%", reading.quality());
+         GPINFO("  Status:      {}", sensorStatusToString(reading.status()));
+         GPINFO("  Timestamp:   {}", formatTimestamp(reading.timestamp_ms()));
 
          // Log location if present
          if (reading.has_location())
          {
             const auto& loc = reading.location();
-            utils::Logger::info("  Location:    ({:.4f}, {:.4f}) alt={:.1f}m",
+            GPINFO("  Location:    ({:.4f}, {:.4f}) alt={:.1f}m",
                loc.latitude(), loc.longitude(), loc.altitude());
          }
 
          // Log metadata
          if (reading.metadata_size() > 0)
          {
-            utils::Logger::debug("  Metadata:");
+            GPDEBUG("  Metadata:");
             for (const auto& [key, value] : reading.metadata())
             {
-               utils::Logger::debug("    {}: {}", key, value);
+               GPDEBUG("    {}: {}", key, value);
             }
          }
       }
@@ -156,21 +170,20 @@ int main(int argc, char* argv[])
       socket.close();
       context.close();
 
-      utils::Logger::info("-------------------------------------------");
-      utils::Logger::info("Total messages received: {}", messageCount);
-      utils::Logger::info("Subscriber shutdown complete");
+      GPINFO("-------------------------------------------");
+      GPINFO("Total messages received: {}", messageCount);
+      GPINFO("Subscriber shutdown complete");
    }
    catch (const zmq::error_t& e)
    {
-      utils::Logger::error("ZeroMQ error: {}", e.what());
+      GPERROR("ZeroMQ error: {}", e.what());
       return EXIT_FAILURE;
    }
    catch (const std::exception& e)
    {
-      utils::Logger::error("Error: {}", e.what());
+      GPERROR("Error: {}", e.what());
       return EXIT_FAILURE;
    }
 
-   utils::Logger::shutdown();
    return EXIT_SUCCESS;
 }

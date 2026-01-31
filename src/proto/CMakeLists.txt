@@ -74,4 +74,5 @@ endif()
 set_target_properties(proto_lib PROPERTIES
    OUTPUT_NAME "proto"
    POSITION_INDEPENDENT_CODE ON
+   CXX_CLANG_TIDY ""
 )

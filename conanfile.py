@@ -31,12 +31,13 @@ class StarterCppConan(ConanFile):
       "build_tests": True,
       "enable_coverage": False,
       "enable_sanitizers": False,
+      "spdlog/*:use_std_fmt": True,  # Use C++20 std::format instead of external fmt
    }
 
    # Dependencies
    def requirements(self):
       # Logging
-      self.requires("spdlog/1.13.0")
+      self.requires("spdlog/1.15.0")
 
       # Protocol Buffers
       self.requires("protobuf/5.27.0")

@@ -1,45 +1,34 @@
-# =============================================================================
-# Tests - CMakeLists.txt
-# =============================================================================
+project(CommonUtilsTests)
 
 include(GoogleTest)
 
 # Enable CTest
 enable_testing()
 
-# Test executable
-add_executable(unit_tests
-   test_main.cpp
-   test_logger.cpp
-   test_timer.cpp
-   test_async_queue.cpp
-)
+file (GLOB UNIT_TEST_SOURCE ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
 
-target_link_libraries(unit_tests
+# Add the source files
+add_executable(${PROJECT_NAME} ${UNIT_TEST_SOURCE})
+
+target_link_libraries(${PROJECT_NAME}
    PRIVATE
-      StarterCpp::utils
+      CommonUtils
       GTest::gtest
-      GTest::gtest_main
       GTest::gmock
 )
 
-# Include directories
-target_include_directories(unit_tests
-   PRIVATE
-      ${CMAKE_SOURCE_DIR}/src/utils/include
-)
-
 # Discover tests for CTest
-gtest_discover_tests(unit_tests
+gtest_discover_tests(${PROJECT_NAME} 
    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
    PROPERTIES
       LABELS "unit"
 )
 
 # Set output directory
-set_target_properties(unit_tests PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+
 
 # =============================================================================
 # Coverage Target
@@ -51,50 +40,52 @@ if(ENABLE_COVERAGE)
    find_program(GENHTML_EXECUTABLE genhtml)
    find_program(GCOV_EXECUTABLE gcov)
 
+   set(COVERAGE_TARGET "CommonUtilsCoverage")
+
    if(LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
       # lcov 2.0+ with newer GCC requires ignoring some inconsistencies
       set(LCOV_IGNORE_ERRORS --ignore-errors inconsistent,mismatch,unused,negative)
 
       # Create coverage target
-      add_custom_target(coverage
+      add_custom_target(${COVERAGE_TARGET}
          COMMAND ${LCOV_EXECUTABLE} --zerocounters --directory ${CMAKE_BINARY_DIR} ${LCOV_IGNORE_ERRORS}
          COMMAND ${CMAKE_COMMAND} -E echo "Running tests..."
          COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
          COMMAND ${LCOV_EXECUTABLE}
             --capture
             --directory ${CMAKE_BINARY_DIR}
-            --output-file ${CMAKE_BINARY_DIR}/coverage.info
+            --output-file ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}.info
             --gcov-tool ${GCOV_EXECUTABLE}
             ${LCOV_IGNORE_ERRORS}
          COMMAND ${LCOV_EXECUTABLE}
-            --remove ${CMAKE_BINARY_DIR}/coverage.info
+            --remove ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}.info
             /usr/*
             ${CMAKE_BINARY_DIR}/*
             */test/*
             */tests/*
-            --output-file ${CMAKE_BINARY_DIR}/coverage.info
+            --output-file ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}.info
             ${LCOV_IGNORE_ERRORS}
          COMMAND ${GENHTML_EXECUTABLE}
-            ${CMAKE_BINARY_DIR}/coverage.info
-            --output-directory ${CMAKE_BINARY_DIR}/coverage_report
+            ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}.info
+            --output-directory ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}
             --title "StarterCpp Coverage Report"
             --legend
             --demangle-cpp
             ${LCOV_IGNORE_ERRORS}
-         COMMAND ${CMAKE_COMMAND} -E echo "Coverage report: ${CMAKE_BINARY_DIR}/coverage_report/index.html"
+         COMMAND ${CMAKE_COMMAND} -E echo "Coverage report: ${CMAKE_BINARY_DIR}/${COVERAGE_TARGET}/index.html"
          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-         DEPENDS unit_tests
+         DEPENDS ${PROJECT_NAME}
          COMMENT "Generating code coverage report"
       )
    else()
       message(WARNING "lcov/genhtml not found. Coverage report generation disabled.")
 
       # Simplified coverage target without HTML generation
-      add_custom_target(coverage
+      add_custom_target(${COVERAGE_TARGET}
          COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-         DEPENDS unit_tests
-         COMMENT "Running tests (coverage HTML disabled - lcov/genhtml not found)"
+         DEPENDS ${PROJECT_NAME}
+         COMMENT "Running tests (${COVERAGE_TARGET} HTML disabled - lcov/genhtml not found)"
       )
    endif()
 endif()

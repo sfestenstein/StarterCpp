@@ -11,7 +11,6 @@ Checks: >
   cert-*,
   clang-analyzer-*,
   concurrency-*,
-  cppcoreguidelines-*,
   misc-*,
   modernize-*,
   performance-*,
@@ -19,15 +18,11 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -cert-err58-cpp,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-pro-bounds-constant-array-index,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-type-vararg,
   -misc-no-recursion,
   -misc-non-private-member-variables-in-classes,
   -modernize-use-trailing-return-type,
+  -misc-include-cleaner,
+  -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
   -readability-magic-numbers,
   -readability-identifier-length
@@ -47,7 +42,7 @@ CheckOptions:
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
-    value: UPPER_CASE
+    value: CamelCase
   - key: readability-identifier-naming.FunctionCase
     value: camelBack
   - key: readability-identifier-naming.MethodCase
@@ -57,35 +52,39 @@ CheckOptions:
   - key: readability-identifier-naming.VariableCase
     value: camelBack
   - key: readability-identifier-naming.GlobalConstantCase
-    value: UPPER_CASE
+    value: camelBack
   - key: readability-identifier-naming.GlobalConstantPrefix
-    value: ''
+    value: 's_'
   - key: readability-identifier-naming.StaticConstantCase
-    value: UPPER_CASE
+    value: camelBack
+  - key: readability-identifier-naming.StaticConstantPrefix
+    value: 's_'
   - key: readability-identifier-naming.ConstexprVariableCase
-    value: UPPER_CASE
+    value: camelBack
+  - key: readability-identifier-naming.ConstexprVariablePrefix
+    value: 's_'
   - key: readability-identifier-naming.MemberCase
     value: camelBack
   - key: readability-identifier-naming.MemberPrefix
-    value: 'm_'
+    value: '_'
   - key: readability-identifier-naming.PrivateMemberCase
     value: camelBack
   - key: readability-identifier-naming.PrivateMemberPrefix
-    value: 'm_'
+    value: '_'
   - key: readability-identifier-naming.ProtectedMemberCase
     value: camelBack
   - key: readability-identifier-naming.ProtectedMemberPrefix
-    value: 'm_'
-  - key: readability-identifier-naming.PublicMemberCase
-    value: camelBack
-  - key: readability-identifier-naming.PublicMemberPrefix
-    value: ''
+    value: '_'
   - key: readability-identifier-naming.StaticMemberCase
     value: camelBack
   - key: readability-identifier-naming.StaticMemberPrefix
     value: 's_'
+  - key: readability-identifier-naming.ClassMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: ''
   - key: readability-identifier-naming.NamespaceCase
-    value: lower_case
+    value: CamelCase
   - key: readability-identifier-naming.TypeAliasCase
     value: CamelCase
   - key: readability-identifier-naming.TypedefCase

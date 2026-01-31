@@ -13,24 +13,26 @@
 #include <csignal>
 #include <cstdlib>
 #include <atomic>
+#include <exception>
 #include <random>
+#include <string>
+#include <thread>
 
 #include <zmq.hpp>
 
-#include "utils/Logger.hpp"
-#include "utils/Timer.hpp"
+#include "GeneralLogger.h"
+#include "Timer.h"
 #include "sensor_data.pb.h"
 
 namespace
 {
-   std::atomic<bool> g_running{true};
+   std::atomic<bool> running{true};
 
-   void signalHandler(int signal)
+   void signalHandler(int /*signal*/)
    {
-      utils::Logger::info("Received signal {}, shutting down...", signal);
-      g_running = false;
+      GPINFO("Received shutdown signal");
+      running = false;
    }
-}
 
 /**
  * @brief Generate a random sensor reading for demonstration
@@ -68,19 +70,29 @@ messages::SensorReading generateSensorReading()
 
    return reading;
 }
+}
 
-int main(int argc, char* argv[])
+int main(int /*argc*/, char* /*argv*/[])
 {
    // Initialize logger
-   utils::Logger::init("Publisher", utils::LogLevel::Debug);
+   CommonUtils::GeneralLogger logger;
+   logger.init("PublisherLog");
 
-   utils::Logger::info("===========================================");
-   utils::Logger::info("StarterCpp ZeroMQ Publisher");
-   utils::Logger::info("===========================================");
+   GPINFO("===========================================");
+   GPINFO("StarterCpp ZeroMQ Publisher");
+   GPINFO("===========================================");
 
    // Setup signal handling for graceful shutdown
-   std::signal(SIGINT, signalHandler);
-   std::signal(SIGTERM, signalHandler);
+   if (std::signal(SIGINT, signalHandler) == SIG_ERR)
+   {
+      GPERROR("Failed to set SIGINT handler");
+      return EXIT_FAILURE;
+   }
+   if (std::signal(SIGTERM, signalHandler) == SIG_ERR)
+   {
+      GPERROR("Failed to set SIGTERM handler");
+      return EXIT_FAILURE;
+   }
 
    try
    {
@@ -90,27 +102,26 @@ int main(int argc, char* argv[])
 
       const std::string endpoint = "tcp://localhost:5555";
       socket.bind(endpoint);
-      utils::Logger::info("Publisher bound to {}", endpoint);
+      GPINFO("Publisher bound to {}", endpoint);
 
       // Create a timer that fires every second
-      utils::Timer timer;
-      timer.setInterval(std::chrono::seconds(1));
+      CommonUtils::Timer timer;
 
-      timer.setCallback([&socket]()
+      timer.startPeriodic([&socket]()
       {
-         if (!g_running)
+         if (!running)
          {
             return;
          }
 
          // Generate sensor data
-         messages::SensorReading reading = generateSensorReading();
+         const messages::SensorReading reading = generateSensorReading();
 
          // Serialize to string
          std::string serialized;
          if (!reading.SerializeToString(&serialized))
          {
-            utils::Logger::error("Failed to serialize message");
+            GPERROR("Failed to serialize message");
             return;
          }
 
@@ -120,7 +131,7 @@ int main(int argc, char* argv[])
 
          if (result.has_value())
          {
-            utils::Logger::info(
+            GPINFO(
                "Published: sensor={}, value={:.2f} {}, quality={}",
                reading.sensor_name(),
                reading.value(),
@@ -130,18 +141,16 @@ int main(int argc, char* argv[])
          }
          else
          {
-            utils::Logger::warn("Failed to send message");
+            GPWARN("Failed to send message");
          }
-      });
+      }, 1000);
 
-      utils::Logger::info("Starting publisher timer (1 second interval)...");
-      utils::Logger::info("Press Ctrl+C to stop");
-      utils::Logger::info("-------------------------------------------");
-
-      timer.start();
+      GPINFO("Starting publisher timer (1 second interval)...");
+      GPINFO("Press Ctrl+C to stop");
+      GPINFO("-------------------------------------------");
 
       // Main loop - wait for shutdown signal
-      while (g_running)
+      while (running)
       {
          std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -151,19 +160,18 @@ int main(int argc, char* argv[])
       socket.close();
       context.close();
 
-      utils::Logger::info("Publisher shutdown complete");
+      GPINFO("Publisher shutdown complete");
    }
    catch (const zmq::error_t& e)
    {
-      utils::Logger::error("ZeroMQ error: {}", e.what());
+      GPERROR("ZeroMQ error: {}", e.what());
       return EXIT_FAILURE;
    }
    catch (const std::exception& e)
    {
-      utils::Logger::error("Error: {}", e.what());
+      GPERROR("Error: {}", e.what());
       return EXIT_FAILURE;
    }
 
-   utils::Logger::shutdown();
    return EXIT_SUCCESS;
 }
