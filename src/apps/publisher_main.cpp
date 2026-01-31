@@ -41,7 +41,7 @@ messages::SensorReading generateSensorReading()
 {
    static std::random_device rd;
    static std::mt19937 gen(rd());
-   static std::uniform_real_distribution<> tempDist(18.0, 28.0);
+   static std::uniform_real_distribution<> tempDist(18.1, 29.1);
    static std::uniform_int_distribution<> qualityDist(85, 100);
    static int messageCount = 0;
 
@@ -60,7 +60,7 @@ messages::SensorReading generateSensorReading()
 
    // Add some metadata
    (*reading.mutable_metadata())["message_number"] = std::to_string(++messageCount);
-   (*reading.mutable_metadata())["publisher"] = "StarterCpp Demo";
+   (*reading.mutable_metadata())["publisher"] = "StarterCpp Demo!";
 
    // Add location
    auto* location = reading.mutable_location();

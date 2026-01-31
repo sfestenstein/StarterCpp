@@ -68,7 +68,7 @@ ctest --preset debug --output-on-failure
 ### 6. Check Coverage
 
 ```bash
-cmake --preset coverage -DCMAKE_TOOLCHAIN_FILE=build/coverage/conan_toolchain.cmake
+cmake --preset coverage
 cmake --build --preset coverage
 cmake --build --preset coverage --target coverage
 ```
@@ -99,7 +99,7 @@ git push origin feature/my-feature
 | Member Variables | m_ prefix | `m_value` |
 | Static Members | s_ prefix | `s_instance` |
 | Constants | UPPER_CASE | `MAX_RETRIES` |
-| Namespaces | lower_case | `utils` |
+| Namespaces | lower_case | `common_utils` |
 | Files | PascalCase | `AsyncQueue.hpp` |
 
 ### Code Style
@@ -159,7 +159,7 @@ public:
 
 #include "MyClass.hpp"
 
-#include "utils/Logger.hpp"
+#include "CommonUtils/GeneralLogger.h"
 #include "proto/messages.pb.h"
 
 #include <spdlog/spdlog.h>
@@ -193,23 +193,23 @@ int myFunction(int param1, std::string_view param2);
 
 ## Adding New Components
 
-### Adding a New Utility Class
+### Adding a New CommonUtils Class
 
-1. Create header: `src/utils/include/utils/NewClass.hpp`
-2. Create source: `src/utils/NewClass.cpp`
-3. Add to `src/utils/CMakeLists.txt`:
+1. Create header: `src/CommonUtils/NewClass.h`
+2. Create source: `src/CommonUtils/NewClass.cpp`
+3. Add to `src/CommonUtils/CMakeLists.txt`:
    ```cmake
-   add_library(utils STATIC
+   add_library(common_utils STATIC
       ...
       NewClass.cpp
    )
    ```
-4. Create test: `tests/test_new_class.cpp`
-5. Add to `tests/CMakeLists.txt`:
+4. Create test: `tests/CommonUtilsTests/NewClassUt.cpp`
+5. Add to `tests/CommonUtilsTests/CMakeLists.txt`:
    ```cmake
-   add_executable(unit_tests
+   add_executable(CommonUtilsTests
       ...
-      test_new_class.cpp
+      NewClassUt.cpp
    )
    ```
 
@@ -235,7 +235,7 @@ int myFunction(int param1, std::string_view param2);
 
    target_link_libraries(new_app
       PRIVATE
-         StarterCpp::utils
+         StarterCpp::common_utils
          # other dependencies
    )
    ```
@@ -306,7 +306,7 @@ Types:
 
 Examples:
 ```
-feat(utils): add retry logic to AsyncQueue
+feat(common_utils): add snooze capability to Timer
 
 fix(timer): prevent race condition on stop
 

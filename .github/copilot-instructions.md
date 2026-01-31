@@ -16,12 +16,19 @@ StarterCpp is a C++20 starter project template using:
 ```
 StarterCpp/
 ├── src/
-│   ├── utils/              # Utility library (Logger, Timer, AsyncQueue)
-│   │   └── include/utils/  # Public headers
+│   ├── CommonUtils/          # Common utility library
+│   │   ├── GeneralLogger.h   # Async spdlog wrapper with macros
+│   │   ├── GeneralLogger.cpp
+│   │   ├── Timer.h           # Basic timer class
+│   │   ├── Timer.cpp
+│   │   ├── SnoozableTimer.h  # Timer with snooze capability
+│   │   ├── SnoozableTimer.cpp
+│   │   └── DataHandler.h     # Data handling (header-only)
 │   ├── proto/              # Protocol buffer library
 │   │   └── proto-messages/ # .proto source files
 │   └── apps/               # Executables (publisher, subscriber)
 ├── tests/                  # Unit tests
+│   └── CommonUtilsTests/   # Tests for CommonUtils library
 ├── docs/                   # Documentation
 └── .github/                # CI/CD and this file
 ```
@@ -45,7 +52,7 @@ StarterCpp/
 ### Code Example
 
 ```cpp
-namespace utils
+namespace common_utils
 {
 
 class MyClass
@@ -63,7 +70,7 @@ private:
    static int s_counter;
 };
 
-} // namespace utils
+} // namespace common_utils
 ```
 
 ### Header Structure
@@ -76,7 +83,7 @@ private:
 // Third-party headers
 // System headers
 
-#include "utils/Logger.hpp"
+#include "CommonUtils/GeneralLogger.h"
 
 #include <spdlog/spdlog.h>
 
@@ -86,13 +93,13 @@ private:
 
 ## Common Tasks
 
-### Adding a New Utility Class
+### Adding a New CommonUtils Class
 
-1. Create `src/utils/include/utils/NewClass.hpp`
-2. Create `src/utils/NewClass.cpp`
-3. Add `NewClass.cpp` to `src/utils/CMakeLists.txt`
-4. Create `tests/test_new_class.cpp`
-5. Add test file to `tests/CMakeLists.txt`
+1. Create `src/CommonUtils/NewClass.h`
+2. Create `src/CommonUtils/NewClass.cpp`
+3. Add `NewClass.cpp` to `src/CommonUtils/CMakeLists.txt`
+4. Create `tests/CommonUtilsTests/NewClassUt.cpp`
+5. Add test file to `tests/CommonUtilsTests/CMakeLists.txt`
 
 ### Adding a New Proto Message
 
@@ -106,17 +113,18 @@ private:
 2. Add to `src/apps/CMakeLists.txt`:
    ```cmake
    add_executable(new_app new_app_main.cpp)
-   target_link_libraries(new_app PRIVATE StarterCpp::utils ...)
+   target_link_libraries(new_app PRIVATE StarterCpp::common_utils ...)
    ```
 
 ## Build Commands
 
 ```bash
-# Install dependencies
-conan install . --output-folder=build/debug --build=missing -s build_type=Debug
+# Install dependencies (both configurations to unified folder)
+conan install . --output-folder=build --build=missing -s build_type=Debug
+conan install . --output-folder=build --build=missing -s build_type=Release
 
 # Configure
-cmake --preset debug -DCMAKE_TOOLCHAIN_FILE=build/debug/conan_toolchain.cmake
+cmake --preset debug
 
 # Build
 cmake --build --preset debug
@@ -130,11 +138,12 @@ cmake --build --preset coverage --target coverage
 
 ## CMake Targets
 
-- `utils` - Utility library (alias: `StarterCpp::utils`)
+- `common_utils` - CommonUtils library (alias: `StarterCpp::common_utils`)
 - `proto_lib` - Protobuf library (alias: `StarterCpp::proto`)
 - `publisher` - ZeroMQ publisher application
 - `subscriber` - ZeroMQ subscriber application
 - `unit_tests` - All unit tests
+- `CommonUtilsTests` - CommonUtils unit tests
 
 ## Dependencies Available
 
@@ -142,7 +151,7 @@ When suggesting code, these libraries are available:
 
 | Library | Include | Namespace/Usage |
 |---------|---------|-----------------|
-| spdlog | `<spdlog/spdlog.h>` | `spdlog::info()` or `utils::Logger` |
+| spdlog | `<spdlog/spdlog.h>` | `spdlog::info()` or `common_utils::GeneralLogger` |
 | protobuf | `"message.pb.h"` | `messages::MessageType` |
 | ZeroMQ | `<zmq.hpp>` | `zmq::context_t`, `zmq::socket_t` |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
@@ -151,9 +160,9 @@ When suggesting code, these libraries are available:
 
 ```cpp
 #include <gtest/gtest.h>
-#include "utils/MyClass.hpp"
+#include "CommonUtils/MyClass.h"
 
-namespace utils::test
+namespace common_utils::test
 {
 
 class MyClassTest : public ::testing::Test
@@ -173,21 +182,22 @@ TEST_F(MyClassTest, MethodName_Condition_ExpectedResult)
    EXPECT_EQ(actual, expected);
 }
 
-} // namespace utils::test
+} // namespace common_utils::test
 ```
 
 ## Error Handling Patterns
 
 - Use exceptions for recoverable errors
 - Use `std::optional` for values that may not exist
-- Log errors using `utils::Logger::error()`
+- Log errors using `GPERROR()` macro from GeneralLogger
 - Use RAII for resource management
 
 ## Thread Safety
 
 - Use `std::mutex` with `std::lock_guard` or `std::unique_lock`
 - Use `std::atomic` for simple flags/counters
-- The `AsyncQueue` class provides a thread-safe queue implementation
+- The `SnoozableTimer` class provides thread-safe snooze functionality
+- The `GeneralLogger` provides thread-safe async logging
 
 ## Important Notes
 

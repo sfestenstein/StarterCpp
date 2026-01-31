@@ -4,11 +4,38 @@
 
 # Find protobuf compiler from Conan
 find_package(protobuf REQUIRED CONFIG)
-find_program(PROTOC_EXECUTABLE
-   NAMES protoc
-   HINTS ${protobuf_PACKAGE_FOLDER_DEBUG}/bin ${protobuf_PACKAGE_FOLDER_RELEASE}/bin
-   REQUIRED
-)
+
+# Get protoc from the Conan package folder
+# Conan sets either protobuf_PACKAGE_FOLDER_RELEASE or protobuf_PACKAGE_FOLDER_DEBUG
+if(DEFINED protobuf_PACKAGE_FOLDER_RELEASE)
+   set(CONAN_PROTOC_PATH "${protobuf_PACKAGE_FOLDER_RELEASE}/bin/protoc")
+elseif(DEFINED protobuf_PACKAGE_FOLDER_DEBUG)
+   set(CONAN_PROTOC_PATH "${protobuf_PACKAGE_FOLDER_DEBUG}/bin/protoc")
+endif()
+
+if(EXISTS "${CONAN_PROTOC_PATH}")
+   set(PROTOC_EXECUTABLE "${CONAN_PROTOC_PATH}")
+else()
+   # Fallback: use Protobuf_PROTOC_EXECUTABLE if it's from a Conan package
+   if(DEFINED Protobuf_PROTOC_EXECUTABLE AND "${Protobuf_PROTOC_EXECUTABLE}" MATCHES "conan2")
+      set(PROTOC_EXECUTABLE "${Protobuf_PROTOC_EXECUTABLE}")
+   elseif(TARGET protobuf::protoc)
+      # Get from target property
+      get_target_property(_protoc_loc protobuf::protoc IMPORTED_LOCATION)
+      if(_protoc_loc AND "${_protoc_loc}" MATCHES "conan2")
+         set(PROTOC_EXECUTABLE "${_protoc_loc}")
+      endif()
+   endif()
+endif()
+
+if(NOT PROTOC_EXECUTABLE)
+   message(FATAL_ERROR "Could not find protoc executable from Conan package. "
+                       "protobuf_PACKAGE_FOLDER_RELEASE=${protobuf_PACKAGE_FOLDER_RELEASE}, "
+                       "protobuf_PACKAGE_FOLDER_DEBUG=${protobuf_PACKAGE_FOLDER_DEBUG}, "
+                       "Protobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}")
+endif()
+
+message(STATUS "Using protoc: ${PROTOC_EXECUTABLE}")
 
 # Proto source files
 file (GLOB PROTO_FILES ${CMAKE_CURRENT_LIST_DIR}/proto-messages/*.proto)

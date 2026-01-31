@@ -86,19 +86,12 @@ os=Windows
 ### Debug Build (Recommended for Development)
 
 ```bash
-# Install dependencies
-conan install . \
-   --output-folder=build/debug \
-   --build=missing \
-   -s build_type=Debug \
-   -o build_tests=True \
-   -o enable_sanitizers=True
+# Install all configurations to unified build folder
+conan install . --output-folder=build --build=missing -s build_type=Debug
+conan install . --output-folder=build --build=missing -s build_type=Release
 
-# Configure
-cmake --preset debug \
-   -DCMAKE_TOOLCHAIN_FILE=build/debug/conan_toolchain.cmake
-
-# Build
+# Configure and Build Debug
+cmake --preset debug
 cmake --build --preset debug
 
 # Test
@@ -108,37 +101,16 @@ ctest --preset debug
 ### Release Build
 
 ```bash
-# Install dependencies
-conan install . \
-   --output-folder=build/release \
-   --build=missing \
-   -s build_type=Release \
-   -o build_tests=False
-
-# Configure
-cmake --preset release \
-   -DCMAKE_TOOLCHAIN_FILE=build/release/conan_toolchain.cmake
-
-# Build
+# Configure and Build Release
+cmake --preset release
 cmake --build --preset release
 ```
 
 ### Coverage Build
 
 ```bash
-# Install dependencies
-conan install . \
-   --output-folder=build/coverage \
-   --build=missing \
-   -s build_type=Debug \
-   -o build_tests=True \
-   -o enable_coverage=True
-
-# Configure
-cmake --preset coverage \
-   -DCMAKE_TOOLCHAIN_FILE=build/coverage/conan_toolchain.cmake
-
-# Build
+# Configure with coverage
+cmake --preset coverage
 cmake --build --preset coverage
 
 # Run tests and generate coverage

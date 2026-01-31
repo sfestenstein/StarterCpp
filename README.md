@@ -28,58 +28,57 @@ A robust, production-ready C++20 starter project template with modern build tool
 
 ### Build Instructions
 
-#### Debug Build (with sanitizers)
+#### 1. Clone and Setup
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/yourorg/StarterCpp.git
 cd StarterCpp
 
-# 2. Create a Conan profile (one-time setup)
+# Create a Conan profile (one-time setup)
 conan profile detect --force
-
-# 3. Install dependencies with Conan
-conan install . --output-folder=build/debug --build=missing -s build_type=Debug
-
-# 4. Configure with CMake preset
-cmake --preset debug
-
-# 5. Build
-cmake --build --preset debug
-
-# 6. Run tests
-ctest --preset debug
-
-# 7. Run the applications
-./build/debug/bin/publisher   # In terminal 1
-./build/debug/bin/subscriber  # In terminal 2
 ```
 
-#### Release Build
+#### 2. Install Dependencies (One-Time)
+
+Install both Debug and Release configurations to a unified build folder:
 
 ```bash
-# Install release dependencies
-conan install . --output-folder=build/release --build=missing -s build_type=Release
+conan install . --output-folder=build --build=missing -s build_type=Debug -s compiler.cppstd=20
+conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
+```
 
-# Configure and build
+This installs all dependencies for all presets (debug, release, coverage, ci-linux).
+
+#### 3. Build and Test
+
+**Debug Build** (with sanitizers and tests):
+```bash
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
+```
+
+**Release Build** (optimized):
+```bash
 cmake --preset release
 cmake --build --preset release
 ```
 
-#### Coverage Build
-
+**Coverage Build**:
 ```bash
-# Install dependencies with coverage enabled
-conan install . --output-folder=build/coverage --build=missing -s build_type=Debug \
-    -o enable_coverage=True
-
-# Configure, build, and generate coverage report
 cmake --preset coverage
 cmake --build --preset coverage
 ctest --preset coverage
 cmake --build --preset coverage --target coverage
+# View report in build/coverage/coverage_report/index.html
+```
 
-# View report in build/coverage/coverage/index.html
+#### 4. Run Applications
+
+```bash
+./build/debug/bin/publisher   # In terminal 1
+./build/debug/bin/subscriber  # In terminal 2
 ```
 
 ## Project Structure
@@ -87,31 +86,35 @@ cmake --build --preset coverage --target coverage
 ```
 StarterCpp/
 ├── src/
-│   ├── utils/              # Utility library
-│   │   ├── include/utils/  # Public headers
-│   │   ├── Logger.cpp      # Logging wrapper
-│   │   ├── Timer.cpp       # Timer class
-│   │   └── AsyncQueue.cpp  # Thread-safe queue
-│   ├── proto/              # Protocol buffer library
-│   │   ├── CMakeLists.txt  # Proto build configuration
-│   │   └── proto-messages/ # Protocol buffer definitions
+│   ├── CommonUtils/         # Common utilities library
+│   │   ├── GeneralLogger.h   # Async logging wrapper (spdlog)
+│   │   ├── GeneralLogger.cpp
+│   │   ├── Timer.h           # Basic timer class
+│   │   ├── Timer.cpp
+│   │   ├── SnoozableTimer.h  # Timer with snooze capability
+│   │   ├── SnoozableTimer.cpp
+│   │   └── DataHandler.h     # Data handling utilities
+│   ├── proto/                # Protocol buffer library
+│   │   ├── CMakeLists.txt    # Proto build configuration
+│   │   └── proto-messages/   # Protocol buffer definitions
 │   │       ├── sensor_data.proto
 │   │       ├── commands.proto
 │   │       └── configuration.proto
-│   └── apps/               # Executables
+│   └── apps/                 # Executables
 │       ├── publisher_main.cpp
 │       └── subscriber_main.cpp
-├── tests/                  # Unit tests
-├── docs/                   # Documentation
-├── .github/                # GitHub configuration
-│   ├── workflows/          # CI/CD pipelines
+├── tests/                    # Unit tests
+│   └── CommonUtilsTests/     # CommonUtils unit tests
+├── docs/                     # Documentation
+├── .github/                  # GitHub configuration
+│   ├── workflows/            # CI/CD pipelines
 │   └── copilot-instructions.md
-├── CMakeLists.txt          # Root CMake configuration
-├── CMakePresets.json       # CMake presets
-├── conanfile.py            # Conan package configuration
-├── .clang-format           # Code formatting rules
-├── .clang-tidy             # Static analysis rules
-└── .editorconfig           # Editor configuration
+├── CMakeLists.txt            # Root CMake configuration
+├── CMakePresets.json         # CMake presets
+├── conanfile.py              # Conan package configuration
+├── .clang-format             # Code formatting rules
+├── .clang-tidy               # Static analysis rules
+└── .editorconfig             # Editor configuration
 ```
 
 ## Documentation
@@ -152,10 +155,10 @@ ctest --preset debug
 ### Custom Configuration (without presets)
 
 ```bash
-# Manual configuration example
+# Manual configuration example (using unified Conan output)
 cmake -B build/custom -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_TOOLCHAIN_FILE=build/custom/conan_toolchain.cmake \
+    -DCMAKE_TOOLCHAIN_FILE=build/build/Debug/generators/conan_toolchain.cmake \
     -DBUILD_TESTS=ON \
     -DENABLE_SANITIZERS=ON
 ```

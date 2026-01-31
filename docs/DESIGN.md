@@ -21,8 +21,8 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 ├───────────┼──────────────────────────────┼───────────────────┤
 │           │         Libraries            │                   │
 │  ┌────────▼────────┐           ┌────────▼────────┐          │
-│  │   Proto Lib     │           │   Utils Lib     │          │
-│  │   (protobuf)    │           │   (utilities)   │          │
+│  │   Proto Lib     │           │  CommonUtils   │          │
+│  │   (protobuf)    │           │  (utilities)   │          │
 │  └─────────────────┘           └─────────────────┘          │
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
@@ -35,27 +35,30 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 
 ### Libraries
 
-#### Utils Library (`src/utils/`)
+#### CommonUtils Library (`src/CommonUtils/`)
 
-The utilities library provides reusable components for common tasks:
+The CommonUtils library provides reusable components for common tasks:
 
-- **Logger**: A convenient wrapper around spdlog providing:
-  - Simplified API for common logging operations
-  - Configurable log levels
-  - Console and file output support
-  - Thread-safe logging
+- **GeneralLogger**: An async logging wrapper around spdlog providing:
+  - Dual-logger system (general + trace)
+  - Convenience macros (GPCRIT, GPERROR, GPWARN, GPINFO, GPDEBUG, GPTRACE)
+  - Async logging with configurable queue size
+  - Thread-safe initialization
 
-- **Timer**: A timer class similar to Qt's QTimer:
+- **Timer**: A basic timer class:
   - Periodic and single-shot modes
   - Callback-based design
   - Thread-safe start/stop operations
   - Millisecond precision
 
-- **AsyncQueue**: A thread-safe queue for inter-thread communication:
-  - Blocking and non-blocking operations
-  - Optional maximum size with backpressure
-  - Timeout-based operations
-  - Graceful shutdown support
+- **SnoozableTimer**: An extended timer with snooze capability:
+  - Inherits from Timer
+  - Snooze functionality to extend timeout
+  - Useful for implementing watchdog patterns
+
+- **DataHandler**: Data handling utilities (header-only):
+  - Template-based data processing
+  - Flexible data transformation support
 
 #### Proto Library (`src/proto/`)
 
