@@ -9,26 +9,38 @@ StarterCpp is a C++20 starter project template using:
 - **Package Manager**: Conan 2.0
 - **Compiler**: GCC 13+ or Clang 15+ (Linux/macOS)
 - **Testing**: Google Test
-- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq)
+- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre
 
 ## Project Structure
 
 ```
 StarterCpp/
 ├── src/
-│   ├── CommonUtils/          # Common utility library
-│   │   ├── GeneralLogger.h   # Async spdlog wrapper with macros
-│   │   ├── GeneralLogger.cpp
-│   │   ├── Timer.h           # Basic timer class
-│   │   ├── Timer.cpp
-│   │   ├── SnoozableTimer.h  # Timer with snooze capability
-│   │   ├── SnoozableTimer.cpp
-│   │   └── DataHandler.h     # Data handling (header-only)
-│   ├── proto/              # Protocol buffer library
-│   │   └── proto-messages/ # .proto source files
-│   └── apps/               # Executables (publisher, subscriber)
+│   ├── apps/               # Executables
+│   │   ├── ZyrePublisherTest.cpp
+│   │   ├── ZyreSubscriberTest.cpp
+│   │   ├── HighBandwidthPublisherTester.cpp
+│   │   └── HighBandwidthSubscriberTester.cpp
+│   └── libs/               # Libraries
+│       ├── CommonUtils/    # Common utility library
+│       │   ├── GeneralLogger.h   # Async spdlog wrapper with macros
+│       │   ├── GeneralLogger.cpp
+│       │   ├── Timer.h           # Basic timer class
+│       │   ├── Timer.cpp
+│       │   ├── SnoozableTimer.h  # Timer with snooze capability
+│       │   ├── SnoozableTimer.cpp
+│       │   └── DataHandler.h     # Data handling (header-only)
+│       ├── PubSub/         # Publish-Subscribe library
+│       │   ├── ZyreNode.h        # Base Zyre node class
+│       │   ├── ZyrePublisher.h   # Zyre-based publisher
+│       │   ├── ZyreSubscriber.h  # Zyre-based subscriber
+│       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
+│       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
+│       └── proto/          # Protocol buffer library
+│           └── proto-messages/ # .proto source files
 ├── tests/                  # Unit tests
-│   └── CommonUtilsTests/   # Tests for CommonUtils library
+│   ├── CommonUtilsTests/   # Tests for CommonUtils library
+│   └── PubSubTests/        # Tests for PubSub library
 ├── docs/                   # Documentation
 └── .github/                # CI/CD and this file
 ```
@@ -97,15 +109,22 @@ private:
 
 ### Adding a New CommonUtils Class
 
-1. Create `src/CommonUtils/NewClass.h`
-2. Create `src/CommonUtils/NewClass.cpp` (auto-discovered via `file(GLOB)`)
+1. Create `src/libs/CommonUtils/NewClass.h`
+2. Create `src/libs/CommonUtils/NewClass.cpp` (auto-discovered via `file(GLOB)`)
 3. Create `tests/CommonUtilsTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
+4. Re-run CMake configure to pick up new files
+
+### Adding a New PubSub Class
+
+1. Create `src/libs/PubSub/NewClass.h`
+2. Create `src/libs/PubSub/NewClass.cpp` (auto-discovered via `file(GLOB)`)
+3. Create `tests/PubSubTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
 4. Re-run CMake configure to pick up new files
 
 ### Adding a New Proto Message
 
-1. Create or edit file in `src/proto/proto-messages/` directory
-2. Proto files are auto-discovered via glob in `src/proto/CMakeLists.txt`
+1. Create or edit file in `src/libs/proto/proto-messages/` directory
+2. Proto files are auto-discovered via glob in `src/libs/proto/CMakeLists.txt`
 3. Include generated header as `#include "message_name.pb.h"`
 
 ### Adding a New Application
@@ -140,21 +159,28 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 ## CMake Targets
 
 - `CommonUtils` - CommonUtils shared library
-- `proto_lib` - Protobuf library (alias: `StarterCpp::proto`)
-- `publisher` - ZeroMQ publisher application
-- `subscriber` - ZeroMQ subscriber application
+- `PubSubLib` - PubSub shared library (Zyre and HighBandwidth messaging)
+- `ProtoLib` - Protobuf library (alias: `StarterCpp::proto`)
+- `ZyrePublisher` - Zyre publisher test application
+- `ZyreSubscriber` - Zyre subscriber test application
+- `HighBandwidthPublisher` - UDP multicast publisher test application
+- `HighBandwidthSubscriber` - UDP multicast subscriber test application
 - `CommonUtilsTests` - CommonUtils unit tests
+- `PubSubTests` - PubSub unit tests
 - `CommonUtilsCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
+- `PubSubCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
 
 ## Dependencies Available
 
 When suggesting code, these libraries are available:
 
 | Library | Include | Namespace/Usage |
-|---------|---------|-----------------|
-| spdlog | `<spdlog/spdlog.h>` | `spdlog::info()` or `common_utils::GeneralLogger` |
+|---------|---------|------------------|
+| spdlog | `<spdlog/spdlog.h>` | `spdlog::info()` or `CommonUtils::GeneralLogger` |
 | protobuf | `"message.pb.h"` | `messages::MessageType` |
 | ZeroMQ | `<zmq.hpp>` | `zmq::context_t`, `zmq::socket_t` |
+| CZMQ | `<czmq.h>` | `zsock_t`, `zactor_t` |
+| Zyre | `<zyre.h>` | `zyre_t` |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
 
 ## Testing Patterns

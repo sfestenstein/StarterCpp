@@ -2,31 +2,32 @@
 # Applications - CMakeLists.txt
 # =============================================================================
 
-# Publisher executable
-add_executable(publisher
-   publisher_main.cpp
+# Zyre Publisher executable
+add_executable(ZyrePublisher  ZyrePublisherTest.cpp)
+
+target_link_libraries(ZyrePublisher
+   PRIVATE PubSubLib ProtoLib
 )
 
-target_link_libraries(publisher
-   PRIVATE
-      CommonUtils
-      StarterCpp::proto
-      cppzmq
-)
+# Zyre Subscriber executable
+add_executable(ZyreSubscriber ZyreSubscriberTest.cpp)
 
-# Subscriber executable
-add_executable(subscriber
-   subscriber_main.cpp
-)
+target_link_libraries(ZyreSubscriber
+   PRIVATE PubSubLib ProtoLib )
 
-target_link_libraries(subscriber
-   PRIVATE
-      CommonUtils
-      StarterCpp::proto
-      cppzmq
-)
+# High-Bandwidth Subscriber executable
+add_executable(HighBandwidthSubscriber HighBandwidthSubscriberTester.cpp)
+
+target_link_libraries(HighBandwidthSubscriber
+   PRIVATE PubSubLib ProtoLib )
+
+# High-Bandwidth Publisher executable
+add_executable(HighBandwidthPublisher HighBandwidthPublisherTester.cpp)
+
+target_link_libraries(HighBandwidthPublisher
+   PRIVATE PubSubLib ProtoLib )
 
 # Set properties
-set_target_properties(publisher subscriber PROPERTIES
+set_target_properties(ZyrePublisher ZyreSubscriber HighBandwidthSubscriber HighBandwidthPublisher PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

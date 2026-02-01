@@ -85,9 +85,9 @@ git push origin feature/my-feature
 
 ### File Organization
 
-- Headers: `src/<lib>/include/<lib>/<Header>.hpp`
-- Sources: `src/<lib>/<Source>.cpp`
-- Tests: `tests/test_<source>.cpp`
+- Headers: `src/libs/<lib>/<Header>.h`
+- Sources: `src/libs/<lib>/<Source>.cpp`
+- Tests: `tests/<lib>Tests/<Source>Ut.cpp`
 
 ### Naming Conventions
 
@@ -195,34 +195,27 @@ int myFunction(int param1, std::string_view param2);
 
 ### Adding a New CommonUtils Class
 
-1. Create header: `src/CommonUtils/NewClass.h`
-2. Create source: `src/CommonUtils/NewClass.cpp`
-3. Add to `src/CommonUtils/CMakeLists.txt`:
-   ```cmake
-   add_library(common_utils STATIC
-      ...
-      NewClass.cpp
-   )
-   ```
+1. Create header: `src/libs/CommonUtils/NewClass.h`
+2. Create source: `src/libs/CommonUtils/NewClass.cpp`
+3. Files are auto-discovered via `file(GLOB)` in `src/libs/CommonUtils/CMakeLists.txt`
 4. Create test: `tests/CommonUtilsTests/NewClassUt.cpp`
-5. Add to `tests/CommonUtilsTests/CMakeLists.txt`:
-   ```cmake
-   add_executable(CommonUtilsTests
-      ...
-      NewClassUt.cpp
-   )
-   ```
+5. Tests are auto-discovered via `file(GLOB)` in `tests/CommonUtilsTests/CMakeLists.txt`
+6. Re-run CMake configure to pick up new files
+
+### Adding a New PubSub Class
+
+1. Create header: `src/libs/PubSub/NewClass.h`
+2. Create source: `src/libs/PubSub/NewClass.cpp`
+3. Files are auto-discovered via `file(GLOB)` in `src/libs/PubSub/CMakeLists.txt`
+4. Create test: `tests/PubSubTests/NewClassUt.cpp`
+5. Tests are auto-discovered via `file(GLOB)` in `tests/PubSubTests/CMakeLists.txt`
+6. Re-run CMake configure to pick up new files
 
 ### Adding a New Proto File
 
-1. Create proto: `proto/new_message.proto`
-2. Add to `src/proto/CMakeLists.txt`:
-   ```cmake
-   set(PROTO_FILES
-      ...
-      ${CMAKE_SOURCE_DIR}/proto/new_message.proto
-   )
-   ```
+1. Create proto: `src/libs/proto/proto-messages/new_message.proto`
+2. Files are auto-discovered via `file(GLOB)` in `src/libs/proto/CMakeLists.txt`
+3. Re-run CMake configure to pick up new files
 
 ### Adding a New Application
 
@@ -235,7 +228,8 @@ int myFunction(int param1, std::string_view param2);
 
    target_link_libraries(new_app
       PRIVATE
-         StarterCpp::common_utils
+         PubSubLib
+         ProtoLib
          # other dependencies
    )
    ```

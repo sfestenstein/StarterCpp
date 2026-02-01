@@ -11,31 +11,38 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 ### Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Applications                            │
-│  ┌─────────────────┐           ┌─────────────────┐          │
-│  │   Publisher     │           │   Subscriber    │          │
-│  │   (ZeroMQ)      │           │   (ZeroMQ)      │          │
-│  └────────┬────────┘           └────────┬────────┘          │
-│           │                              │                   │
-├───────────┼──────────────────────────────┼───────────────────┤
-│           │         Libraries            │                   │
-│  ┌────────▼────────┐           ┌────────▼────────┐          │
-│  │   Proto Lib     │           │  CommonUtils   │          │
-│  │   (protobuf)    │           │  (utilities)   │          │
-│  └─────────────────┘           └─────────────────┘          │
-│                                                              │
-├──────────────────────────────────────────────────────────────┤
-│                    External Dependencies                     │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │  spdlog  │ │ protobuf │ │  ZeroMQ  │ │  GTest   │        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Applications                                       │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
+│  │ ZyrePublisher   │  │ ZyreSubscriber  │  │ HighBandwidth Pub/Sub       │  │
+│  │ (Zyre P2P)      │  │ (Zyre P2P)      │  │ (UDP Multicast)             │  │
+│  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘  │
+│           │                    │                          │                  │
+├───────────┴────────────────────┴──────────────────────────┴──────────────────┤
+│                              Libraries                                        │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │                         PubSub Library                                   │ │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐  │ │
+│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │  │ │
+│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │  │ │
+│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────────┐                    ┌─────────────────┐                  │
+│  │   Proto Lib     │                    │  CommonUtils    │                  │
+│  │   (protobuf)    │                    │  (utilities)    │                  │
+│  └─────────────────┘                    └─────────────────┘                  │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                         External Dependencies                                │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
+│  │ spdlog │ │protobuf│ │ ZeroMQ │ │ cppzmq │ │  CZMQ  │ │  Zyre  │          │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Libraries
 
-#### CommonUtils Library (`src/CommonUtils/`)
+#### CommonUtils Library (`src/libs/CommonUtils/`)
 
 The CommonUtils library provides reusable components for common tasks:
 
@@ -60,31 +67,80 @@ The CommonUtils library provides reusable components for common tasks:
   - Template-based data processing
   - Flexible data transformation support
 
-#### Proto Library (`src/proto/`)
+#### PubSub Library (`src/libs/PubSub/`)
 
-The protocol buffer library compiles `.proto` files from `src/proto/proto-messages/` into C++ classes:
+The PubSub library provides two messaging patterns:
 
-- **sensor_data.proto**: Sensor readings with metadata
+**Zyre-based Messaging** (peer-to-peer discovery):
+
+- **ZyreNode**: Base class for Zyre nodes:
+  - Automatic peer discovery via UDP beaconing
+  - Node lifecycle management (start/stop)
+  - Thread-safe operation
+
+- **ZyrePublisher**: Publishes messages via Zyre:
+  - Inherits from ZyreNode
+  - Publishes protobuf messages to topics
+  - Automatic peer discovery
+
+- **ZyreSubscriber**: Subscribes to messages via Zyre:
+  - Inherits from ZyreNode
+  - Topic-based subscription with callbacks
+  - Background receive thread
+
+**High-Bandwidth Messaging** (UDP multicast):
+
+- **HighBandwidthPublisher**: Fast UDP multicast publisher:
+  - Raw UDP multicast for minimal overhead
+  - Automatic message fragmentation for large payloads
+  - Fire-and-forget semantics (unreliable but fast)
+  - Ideal for sensor data, telemetry, video frames
+
+- **HighBandwidthSubscriber**: Fast UDP multicast subscriber:
+  - Joins multicast group for receiving
+  - Automatic fragment reassembly
+  - Configurable reassembly timeout
+  - Thread-safe subscription (can subscribe before or after start)
+
+#### Proto Library (`src/libs/proto/`)
+
+The protocol buffer library compiles `.proto` files from `src/libs/proto/proto-messages/` into C++ classes:
+
+- **sensor_data.proto**: Sensor readings with metadata, location, and batching
 - **commands.proto**: Command/response pattern for RPC
 - **configuration.proto**: Application configuration structures
 
 ### Applications
 
-#### Publisher (`src/apps/publisher_main.cpp`)
+#### ZyrePublisher (`src/apps/ZyrePublisherTest.cpp`)
 
 Demonstrates:
-- Timer usage for periodic events
-- Protocol buffer serialization
-- ZeroMQ PUB socket pattern
-- Graceful signal handling
+- Zyre peer-to-peer publishing
+- Protocol buffer serialization (SensorReading, SensorDataBatch, Command)
+- Periodic message publishing
+- GeneralLogger usage
 
-#### Subscriber (`src/apps/subscriber_main.cpp`)
+#### ZyreSubscriber (`src/apps/ZyreSubscriberTest.cpp`)
 
 Demonstrates:
-- ZeroMQ SUB socket pattern
+- Zyre peer-to-peer subscription
 - Protocol buffer deserialization
+- Topic-based message handling
 - Formatted logging with spdlog
-- Timeout-based message receiving
+
+#### HighBandwidthPublisher (`src/apps/HighBandwidthPublisherTester.cpp`)
+
+Demonstrates:
+- High-frequency UDP multicast publishing
+- Large message fragmentation
+- Sensor data streaming
+
+#### HighBandwidthSubscriber (`src/apps/HighBandwidthSubscriberTester.cpp`)
+
+Demonstrates:
+- UDP multicast subscription
+- Fragment reassembly
+- High-throughput message reception
 
 ## Design Decisions
 

@@ -9,7 +9,9 @@ A robust, production-ready C++20 starter project template with modern build tool
 - **Conan 2.0** package manager for dependencies
 - **Google Test** unit testing framework
 - **Protocol Buffers** for serialization
-- **ZeroMQ** for messaging
+- **ZeroMQ** for messaging (cppzmq)
+- **Zyre** for peer-to-peer discovery and messaging
+- **CZMQ** high-level C binding for ZeroMQ
 - **spdlog** for logging
 - **Code quality tools**: clang-format, clang-tidy
 - **Sanitizers**: AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan)
@@ -69,15 +71,20 @@ cmake --build --preset release
 cmake --preset coverage
 cmake --build --preset coverage
 ctest --preset coverage
-cmake --build --preset coverage --target coverage
-# View report in build/coverage/coverage_report/index.html
+cmake --build --preset coverage --target CommonUtilsCoverage
+# View report in build/coverage/CommonUtilsCoverage/index.html
 ```
 
 #### 4. Run Applications
 
 ```bash
-./build/debug/bin/publisher   # In terminal 1
-./build/debug/bin/subscriber  # In terminal 2
+# Zyre-based pub/sub (peer-to-peer discovery)
+./build/debug/bin/ZyreSubscriber  # In terminal 1
+./build/debug/bin/ZyrePublisher   # In terminal 2
+
+# High-bandwidth UDP multicast pub/sub
+./build/debug/bin/HighBandwidthSubscriber  # In terminal 1
+./build/debug/bin/HighBandwidthPublisher   # In terminal 2
 ```
 
 ## Project Structure
@@ -85,35 +92,41 @@ cmake --build --preset coverage --target coverage
 ```
 StarterCpp/
 ├── src/
-│   ├── CommonUtils/         # Common utilities library
-│   │   ├── GeneralLogger.h   # Async logging wrapper (spdlog)
-│   │   ├── GeneralLogger.cpp
-│   │   ├── Timer.h           # Basic timer class
-│   │   ├── Timer.cpp
-│   │   ├── SnoozableTimer.h  # Timer with snooze capability
-│   │   ├── SnoozableTimer.cpp
-│   │   └── DataHandler.h     # Data handling utilities
-│   ├── proto/                # Protocol buffer library
-│   │   ├── CMakeLists.txt    # Proto build configuration
-│   │   └── proto-messages/   # Protocol buffer definitions
-│   │       ├── sensor_data.proto
-│   │       ├── commands.proto
-│   │       └── configuration.proto
-│   └── apps/                 # Executables
-│       ├── publisher_main.cpp
-│       └── subscriber_main.cpp
-├── tests/                    # Unit tests
-│   └── CommonUtilsTests/     # CommonUtils unit tests
-├── docs/                     # Documentation
-├── .github/                  # GitHub configuration
-│   ├── workflows/            # CI/CD pipelines
+│   ├── apps/                     # Executables
+│   │   ├── ZyrePublisherTest.cpp
+│   │   ├── ZyreSubscriberTest.cpp
+│   │   ├── HighBandwidthPublisherTester.cpp
+│   │   └── HighBandwidthSubscriberTester.cpp
+│   └── libs/                     # Libraries
+│       ├── CommonUtils/          # Common utilities library
+│       │   ├── GeneralLogger.h       # Async logging wrapper (spdlog)
+│       │   ├── Timer.h               # Basic timer class
+│       │   ├── SnoozableTimer.h      # Timer with snooze capability
+│       │   └── DataHandler.h         # Data handling utilities
+│       ├── PubSub/               # Publish-Subscribe library
+│       │   ├── ZyreNode.h            # Base Zyre node class
+│       │   ├── ZyrePublisher.h       # Zyre-based publisher
+│       │   ├── ZyreSubscriber.h      # Zyre-based subscriber
+│       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
+│       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
+│       └── proto/                # Protocol buffer library
+│           └── proto-messages/       # Protocol buffer definitions
+│               ├── sensor_data.proto
+│               ├── commands.proto
+│               └── configuration.proto
+├── tests/                        # Unit tests
+│   ├── CommonUtilsTests/         # CommonUtils unit tests
+│   └── PubSubTests/              # PubSub unit tests
+├── docs/                         # Documentation
+├── .github/                      # GitHub configuration
+│   ├── workflows/                # CI/CD pipelines
 │   └── copilot-instructions.md
-├── CMakeLists.txt            # Root CMake configuration
-├── CMakePresets.json         # CMake presets
-├── conanfile.py              # Conan package configuration
-├── .clang-format             # Code formatting rules
-├── .clang-tidy               # Static analysis rules
-└── .editorconfig             # Editor configuration
+├── CMakeLists.txt                # Root CMake configuration
+├── CMakePresets.json             # CMake presets
+├── conanfile.py                  # Conan package configuration
+├── .clang-format                 # Code formatting rules
+├── .clang-tidy                   # Static analysis rules
+└── .editorconfig                 # Editor configuration
 ```
 
 ## Documentation
@@ -177,10 +190,12 @@ Managed by Conan 2.0:
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| spdlog | 1.13.0 | Logging |
+| spdlog | 1.15.0 | Logging |
 | protobuf | 5.27.0 | Serialization |
-| zeromq | 4.3.5 | Messaging |
+| zeromq | 4.3.5 | Low-level messaging |
 | cppzmq | 4.10.0 | C++ ZeroMQ bindings |
+| czmq | 4.2.1 | High-level C ZeroMQ binding |
+| zyre | 2.0.1 | Peer-to-peer discovery |
 | gtest | 1.14.0 | Unit testing |
 
 ## License

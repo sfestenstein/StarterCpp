@@ -148,11 +148,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Subdirectories
 # =============================================================================
 
-# Utility library
-add_subdirectory(src/CommonUtils)
-
-# Protocol buffer library
-add_subdirectory(src/proto)
+# Libraries
+add_subdirectory(src/libs/CommonUtils)
+add_subdirectory(src/libs/proto)
+add_subdirectory(src/libs/PubSub)
 
 # Applications
 add_subdirectory(src/apps)
@@ -161,6 +160,7 @@ add_subdirectory(src/apps)
 if(BUILD_TESTS)
    enable_testing()
    add_subdirectory(tests/CommonUtilsTests)
+   add_subdirectory(tests/PubSubTests)
 endif()
 
 # =============================================================================
@@ -169,7 +169,7 @@ endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS CommonUtils proto_lib
+install(TARGETS CommonUtils ProtoLib PubSubLib
    EXPORT StarterCppTargets
    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

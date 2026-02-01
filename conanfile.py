@@ -46,6 +46,10 @@ class StarterCppConan(ConanFile):
       self.requires("zeromq/4.3.5")
       self.requires("cppzmq/4.10.0")
 
+      # Zyre (ZeroMQ Realtime Exchange) and dependencies
+      self.requires("czmq/4.2.1")
+      self.requires("zyre/2.0.1")
+
    def build_requirements(self):
       # Unit testing (only needed during build)
       if self.options.build_tests:

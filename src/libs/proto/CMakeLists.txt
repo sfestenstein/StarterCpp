@@ -2,6 +2,8 @@
 # Protocol Buffer Library - CMakeLists.txt
 # =============================================================================
 
+project(ProtoLib CXX)
+
 # Find protobuf compiler from Conan
 find_package(protobuf REQUIRED CONFIG)
 
@@ -70,35 +72,35 @@ foreach(PROTO_FILE ${PROTO_FILES})
 endforeach()
 
 # Create the proto library
-add_library(proto_lib STATIC
+add_library(${PROJECT_NAME} STATIC
    ${PROTO_SRCS}
    ${PROTO_HDRS}
 )
 
-add_library(StarterCpp::proto ALIAS proto_lib)
+add_library(StarterCpp::proto ALIAS ${PROJECT_NAME})
 
 # Include directories (SYSTEM suppresses warnings in generated headers)
-target_include_directories(proto_lib
+target_include_directories(${PROJECT_NAME}
    SYSTEM PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
       $<INSTALL_INTERFACE:include>
 )
 
 # Link protobuf
-target_link_libraries(proto_lib
+target_link_libraries(${PROJECT_NAME}
    PUBLIC
       protobuf::libprotobuf
 )
 
 # Suppress warnings in generated code
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-   target_compile_options(proto_lib PRIVATE -w)
+   target_compile_options(${PROJECT_NAME} PRIVATE -w)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-   target_compile_options(proto_lib PRIVATE /w)
+   target_compile_options(${PROJECT_NAME} PRIVATE /w)
 endif()
 
 # Set properties
-set_target_properties(proto_lib PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
    OUTPUT_NAME "proto"
    POSITION_INDEPENDENT_CODE ON
    CXX_CLANG_TIDY ""
