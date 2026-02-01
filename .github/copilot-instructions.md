@@ -44,15 +44,13 @@ StarterCpp/
   - Classes: `PascalCase`
   - Functions/Methods: `camelCase`
   - Variables: `camelCase`
-  - Member variables: `m_` prefix (e.g., `m_value`)
+  - Member variables: `_` prefix (e.g., `_value`)
   - Static members: `s_` prefix (e.g., `s_instance`)
-  - Constants: `UPPER_CASE`
-  - Namespaces: `lower_case`
 
 ### Code Example
 
 ```cpp
-namespace common_utils
+namespace CommonUtils
 {
 
 class MyClass
@@ -66,19 +64,19 @@ public:
 private:
    void internalMethod();
 
-   int m_value;
+   int _value;
    static int s_counter;
 };
 
-} // namespace common_utils
+} // namespace CommonUtils
 ```
 
 ### Header Structure
 
 ```cpp
-#pragma once
+#ifndef MYCLASS_H_
+#define MYCLASS_H_
 
-// Corresponding header (for .cpp files)
 // Project headers
 // Third-party headers
 // System headers
@@ -89,6 +87,10 @@ private:
 
 #include <memory>
 #include <string>
+
+// ... class definition ...
+
+#endif // MYCLASS_H_
 ```
 
 ## Common Tasks
@@ -96,10 +98,9 @@ private:
 ### Adding a New CommonUtils Class
 
 1. Create `src/CommonUtils/NewClass.h`
-2. Create `src/CommonUtils/NewClass.cpp`
-3. Add `NewClass.cpp` to `src/CommonUtils/CMakeLists.txt`
-4. Create `tests/CommonUtilsTests/NewClassUt.cpp`
-5. Add test file to `tests/CommonUtilsTests/CMakeLists.txt`
+2. Create `src/CommonUtils/NewClass.cpp` (auto-discovered via `file(GLOB)`)
+3. Create `tests/CommonUtilsTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
+4. Re-run CMake configure to pick up new files
 
 ### Adding a New Proto Message
 
@@ -120,8 +121,8 @@ private:
 
 ```bash
 # Install dependencies (both configurations to unified folder)
-conan install . --output-folder=build --build=missing -s build_type=Debug
-conan install . --output-folder=build --build=missing -s build_type=Release
+
+conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 
 # Configure
 cmake --preset debug
@@ -133,17 +134,17 @@ cmake --build --preset debug
 ctest --preset debug
 
 # Coverage
-cmake --build --preset coverage --target coverage
+cmake --build --preset coverage --target CommonUtilsCoverage
 ```
 
 ## CMake Targets
 
-- `common_utils` - CommonUtils library (alias: `StarterCpp::common_utils`)
+- `CommonUtils` - CommonUtils shared library
 - `proto_lib` - Protobuf library (alias: `StarterCpp::proto`)
 - `publisher` - ZeroMQ publisher application
 - `subscriber` - ZeroMQ subscriber application
-- `unit_tests` - All unit tests
 - `CommonUtilsTests` - CommonUtils unit tests
+- `CommonUtilsCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
 
 ## Dependencies Available
 
@@ -160,29 +161,35 @@ When suggesting code, these libraries are available:
 
 ```cpp
 #include <gtest/gtest.h>
-#include "CommonUtils/MyClass.h"
+#include "MyClass.h"
 
-namespace common_utils::test
+// Test naming: TestSuiteName, TestName
+TEST(MyClassTest, MethodName_Condition_ExpectedResult)
 {
+   // Arrange
+   CommonUtils::MyClass instance;
 
-class MyClassTest : public ::testing::Test
+   // Act
+   auto result = instance.doSomething();
+
+   // Assert
+   EXPECT_EQ(result, expected);
+}
+
+// For tests needing setup/teardown, use fixtures:
+class MyClassFixture : public ::testing::Test
 {
 protected:
    void SetUp() override { }
    void TearDown() override { }
 
-   MyClass m_instance;
+   CommonUtils::MyClass m_instance;
 };
 
-TEST_F(MyClassTest, MethodName_Condition_ExpectedResult)
+TEST_F(MyClassFixture, MethodName_WithFixture_ExpectedResult)
 {
-   // Arrange
-   // Act
-   // Assert
-   EXPECT_EQ(actual, expected);
+   EXPECT_TRUE(m_instance.isValid());
 }
-
-} // namespace common_utils::test
 ```
 
 ## Error Handling Patterns

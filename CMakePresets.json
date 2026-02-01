@@ -19,9 +19,10 @@
          "name": "debug",
          "displayName": "Debug",
          "inherits": "conan-default",
-         "toolchainFile": "${sourceDir}/build/build/Debug/generators/conan_toolchain.cmake",
+         "toolchainFile": "${sourceDir}/build/build/Release/generators/conan_toolchain.cmake",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_MAP_IMPORTED_CONFIG_DEBUG": "Release",
             "BUILD_TESTS": "ON",
             "ENABLE_SANITIZERS": "ON",
             "ENABLE_CLANG_TIDY": "ON"
@@ -42,9 +43,10 @@
          "name": "coverage",
          "displayName": "Coverage",
          "inherits": "conan-default",
-         "toolchainFile": "${sourceDir}/build/build/Debug/generators/conan_toolchain.cmake",
+         "toolchainFile": "${sourceDir}/build/build/Release/generators/conan_toolchain.cmake",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_MAP_IMPORTED_CONFIG_DEBUG": "Release",
             "BUILD_TESTS": "ON",
             "ENABLE_COVERAGE": "ON",
             "ENABLE_CLANG_TIDY": "ON"
@@ -54,9 +56,10 @@
          "name": "ci-linux",
          "displayName": "CI Linux",
          "inherits": "conan-default",
-         "toolchainFile": "${sourceDir}/build/build/Debug/generators/conan_toolchain.cmake",
+         "toolchainFile": "${sourceDir}/build/build/Release/generators/conan_toolchain.cmake",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_MAP_IMPORTED_CONFIG_DEBUG": "Release",
             "BUILD_TESTS": "ON",
             "ENABLE_COVERAGE": "ON",
             "ENABLE_SANITIZERS": "OFF"

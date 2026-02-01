@@ -44,7 +44,6 @@ conan profile detect --force
 Install both Debug and Release configurations to a unified build folder:
 
 ```bash
-conan install . --output-folder=build --build=missing -s build_type=Debug -s compiler.cppstd=20
 conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 ```
 

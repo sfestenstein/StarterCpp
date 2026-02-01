@@ -55,16 +55,13 @@ jobs:
       - name: Install dependencies with Conan
         run: |
           conan install . \
-            --output-folder=build/ci-linux \
+            --output-folder=build \
             --build=missing \
-            -s build_type=${{ env.BUILD_TYPE }} \
-            -o build_tests=True \
-            -o enable_coverage=True
+            -s build_type=Release \
+            -s compiler.cppstd=20
 
       - name: Configure CMake
-        run: |
-          cmake --preset ci-linux \
-            -DCMAKE_TOOLCHAIN_FILE=build/ci-linux/conan_toolchain.cmake
+        run: cmake --preset ci-linux
 
       - name: Build
         run: cmake --build --preset ci-linux
@@ -118,16 +115,13 @@ jobs:
       - name: Install dependencies with Conan
         run: |
           conan install . \
-            --output-folder=build/ci-linux \
+            --output-folder=build \
             --build=missing \
-            -s build_type=${{ env.BUILD_TYPE }} \
-            -o build_tests=True \
-            -o enable_coverage=False
+            -s build_type=Release \
+            -s compiler.cppstd=20
 
       - name: Configure CMake
-        run: |
-          cmake --preset ci-linux \
-            -DCMAKE_TOOLCHAIN_FILE=build/ci-linux/conan_toolchain.cmake
+        run: cmake --preset ci-linux
 
       - name: Build
         run: cmake --build --preset ci-linux
