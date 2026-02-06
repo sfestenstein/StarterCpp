@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <string>
 #include <thread>
 
 #include <czmq.h>
@@ -11,7 +12,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
-int main() 
+int main(int argc, char* argv[]) 
 {
     // Initialize logger
     CommonUtils::GeneralLogger logger;
@@ -20,7 +21,16 @@ int main()
     // Disable CZMQ's signal handling so we can use our own
     zsys_handler_set(nullptr);
 
-    ZyreSubscriber sub("TestZyre");
+    // Optional: specify local interface IP via command line
+    // Usage: ./ZyreSubscriber [interface_ip]
+    std::string interfaceAddr;
+    if (argc > 1)
+    {
+        interfaceAddr = argv[1];
+        GPINFO("Using interface address: {}", interfaceAddr);
+    }
+
+    ZyreSubscriber sub("TestZyre", interfaceAddr);
 
     // Subscribe to SensorReading messages
     sub.subscribe("SensorReading", [](const std::string &topic, const std::string &data)

@@ -2,10 +2,19 @@
 
 #include <zyre.h>
 
-ZyreNode::ZyreNode(const std::string &name) : 
+#include "GeneralLogger.h"
+
+ZyreNode::ZyreNode(const std::string &name,
+                   const std::string &interfaceAddr) : 
     _node(zyre_new(nullptr)),  // Use random UUID for actual node name
     _nodeName(name)
 {
+    // Bind Zyre beacons and traffic to a specific network interface
+    if (_node && !interfaceAddr.empty())
+    {
+        zyre_set_interface(_node, interfaceAddr.c_str());
+        GPINFO("Zyre node '{}' bound to interface {}", name, interfaceAddr);
+    }
 }
 
 ZyreNode::~ZyreNode() 

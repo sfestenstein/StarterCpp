@@ -6,8 +6,9 @@
 
 #include "GeneralLogger.h"
 
-ZyrePublisher::ZyrePublisher(const std::string &name) :
-    ZyreNode(name)
+ZyrePublisher::ZyrePublisher(const std::string &name,
+                             const std::string &interfaceAddr) :
+    ZyreNode(name, interfaceAddr)
 {
 }
 

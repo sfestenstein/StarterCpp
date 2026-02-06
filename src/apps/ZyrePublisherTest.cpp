@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <string>
 #include <thread>
 
 #include <czmq.h>
@@ -12,7 +13,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
-int main() 
+int main(int argc, char* argv[]) 
 {
     // Initialize logger
     CommonUtils::GeneralLogger logger;
@@ -21,7 +22,16 @@ int main()
     // Disable CZMQ's signal handling so we can use our own
     zsys_handler_set(nullptr);
 
-    ZyrePublisher pub("TestZyre");
+    // Optional: specify local interface IP via command line
+    // Usage: ./ZyrePublisher [interface_ip]
+    std::string interfaceAddr;
+    if (argc > 1)
+    {
+        interfaceAddr = argv[1];
+        GPINFO("Using interface address: {}", interfaceAddr);
+    }
+
+    ZyrePublisher pub("TestZyre", interfaceAddr);
     pub.start();
 
     // Thread-safe random number generation

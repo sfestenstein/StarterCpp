@@ -8,7 +8,14 @@
 class ZyrePublisher : public ZyreNode
 {
 public:
-    explicit ZyrePublisher(const std::string &name);
+    /**
+     * @brief Construct a Zyre publisher.
+     * @param name Namespace name for topic isolation
+     * @param interfaceAddr Local IP address of the network interface to use
+     *        (default: "" lets Zyre auto-detect the interface)
+     */
+    explicit ZyrePublisher(const std::string &name,
+                           const std::string &interfaceAddr = "");
     ~ZyrePublisher();
 
     // Publish a protobuf message to the specified topic

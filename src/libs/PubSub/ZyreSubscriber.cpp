@@ -4,8 +4,9 @@
 #include <cstring>
 #include <iostream>
 
-ZyreSubscriber::ZyreSubscriber(const std::string &name) :
-    ZyreNode(name)
+ZyreSubscriber::ZyreSubscriber(const std::string &name,
+                               const std::string &interfaceAddr) :
+    ZyreNode(name, interfaceAddr)
 {
     if (!start()) 
     {

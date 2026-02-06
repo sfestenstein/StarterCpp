@@ -14,7 +14,14 @@ public:
     // Callback type: receives the raw message data as a string
     using MessageHandler = std::function<void(const std::string &topic, const std::string &data)>;
 
-    explicit ZyreSubscriber(const std::string &name);
+    /**
+     * @brief Construct a Zyre subscriber.
+     * @param name Namespace name for topic isolation
+     * @param interfaceAddr Local IP address of the network interface to use
+     *        (default: "" lets Zyre auto-detect the interface)
+     */
+    explicit ZyreSubscriber(const std::string &name,
+                            const std::string &interfaceAddr = "");
     ~ZyreSubscriber();
 
     // Subscribe to a topic with a handler callback
