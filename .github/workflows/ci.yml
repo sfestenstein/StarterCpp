@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Conan
         run: |
-          pip3 install conan
+          pip3 install conan --break-system-packages
           conan profile detect --force
 
       - name: Cache Conan packages
@@ -72,9 +72,10 @@ jobs:
       - name: Generate coverage report
         run: |
           cd build/ci-linux
-          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov
-          lcov --remove coverage.info '/usr/*' '*/build/*' '*/tests/*' --output-file coverage.info
-          lcov --list coverage.info
+          LCOV_IGNORE="--ignore-errors inconsistent,mismatch,unused,negative"
+          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov $LCOV_IGNORE
+          lcov --remove coverage.info '/usr/*' '*/build/*' '*/tests/*' --output-file coverage.info $LCOV_IGNORE
+          lcov --list coverage.info $LCOV_IGNORE
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

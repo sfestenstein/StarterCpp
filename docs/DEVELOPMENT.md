@@ -96,10 +96,10 @@ git push origin feature/my-feature
 | Classes/Structs | PascalCase | `SensorReading` |
 | Functions/Methods | camelCase | `processData()` |
 | Variables | camelCase | `sensorValue` |
-| Member Variables | m_ prefix | `m_value` |
+| Member Variables | _ prefix | `_value` |
 | Static Members | s_ prefix | `s_instance` |
 | Constants | UPPER_CASE | `MAX_RETRIES` |
-| Namespaces | lower_case | `common_utils` |
+| Namespaces | PascalCase | `CommonUtils` |
 | Files | PascalCase | `AsyncQueue.hpp` |
 
 ### Code Style
@@ -121,11 +121,11 @@ class MyClass
 public:
    void setValue(int value)
    {
-      m_value = value;
+      _value = value;
    }
 
 private:
-   int m_value;
+   int _value;
 };
 
 // Use explicit types or auto with care
@@ -149,7 +149,8 @@ public:
 ### Header Guidelines
 
 ```cpp
-#pragma once  // Use pragma once, not include guards
+#ifndef MYCLASS_H_
+#define MYCLASS_H_
 
 // Include order:
 // 1. Corresponding header (for .cpp files)

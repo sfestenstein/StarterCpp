@@ -209,12 +209,12 @@ protected:
    void SetUp() override { }
    void TearDown() override { }
 
-   CommonUtils::MyClass m_instance;
+   CommonUtils::MyClass _instance;
 };
 
 TEST_F(MyClassFixture, MethodName_WithFixture_ExpectedResult)
 {
-   EXPECT_TRUE(m_instance.isValid());
+   EXPECT_TRUE(_instance.isValid());
 }
 ```
 

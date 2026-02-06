@@ -11,11 +11,11 @@ This document provides detailed instructions for building the StarterCpp project
 - **Conan 2.0+**: `pip install conan`
 - **Ninja** (recommended): [Download](https://ninja-build.org/)
 
-### Windows (MinGW)
+### Windows (MinGW) (Not supported, conan+mingw+zmq doesn't build quite right!)
 
 1. **Install MSYS2**: [Download](https://www.msys2.org/)
 
-2. **Install MinGW-w64 toolchain**:
+2. **Install MinGW-w64 toolchain **:
    ```bash
    pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
    ```
@@ -87,8 +87,7 @@ os=Windows
 
 ```bash
 # Install all configurations to unified build folder
-conan install . --output-folder=build --build=missing -s build_type=Debug
-conan install . --output-folder=build --build=missing -s build_type=Release
+conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 
 # Configure and Build Debug
 cmake --preset debug
