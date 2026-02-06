@@ -11,7 +11,8 @@
 HighBandwidthPublisher::HighBandwidthPublisher(const std::string &name,
                                                const std::string &multicastAddr,
                                                uint16_t port,
-                                               size_t mtu) :
+                                               size_t mtu,
+                                               const std::string &interfaceAddr) :
     _name(name),
     _port(port),
     _mtu(mtu),
@@ -49,6 +50,25 @@ HighBandwidthPublisher::HighBandwidthPublisher(const std::string &name,
     if (setsockopt(_socket, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
     {
         GPERROR("Failed to enable multicast loopback: {}", errno);
+    }
+
+    // Set the outgoing interface for multicast packets
+    if (!interfaceAddr.empty())
+    {
+        struct in_addr localInterface;
+        if (inet_pton(AF_INET, interfaceAddr.c_str(), &localInterface) != 1)
+        {
+            GPERROR("Invalid interface address: {}", interfaceAddr);
+        }
+        else if (setsockopt(_socket, IPPROTO_IP, IP_MULTICAST_IF,
+                            &localInterface, sizeof(localInterface)) < 0)
+        {
+            GPERROR("Failed to set multicast interface to {}: {}", interfaceAddr, errno);
+        }
+        else
+        {
+            GPINFO("Multicast outgoing interface set to {}", interfaceAddr);
+        }
     }
 
     GPINFO("HighBandwidthPublisher created with name '{}' publishing to {}:{} (MTU: {}, max payload/fragment: {})",

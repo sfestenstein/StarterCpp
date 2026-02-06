@@ -2,6 +2,7 @@
 #include <chrono>
 #include <csignal>
 #include <iostream>
+#include <string>
 #include <thread>
 
 #include "GeneralLogger.h"
@@ -10,14 +11,23 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
-int main() 
+int main(int argc, char* argv[]) 
 {
     // Initialize logger
     CommonUtils::GeneralLogger logger;
-    logger.init("HighBandwidthPublisher");
+    logger.init("HighBandwidthPublisherTester");
+
+    // Optional: specify local interface IP via command line
+    // Usage: ./HighBandwidthPublisher [interface_ip]
+    std::string interfaceAddr;
+    if (argc > 1)
+    {
+        interfaceAddr = argv[1];
+        GPINFO("Using interface address: {}", interfaceAddr);
+    }
 
     // High-bandwidth UDP multicast publisher
-    HighBandwidthPublisher pub("TestZyre", "239.192.1.1", 5670);
+    HighBandwidthPublisher pub("TestHb", "239.192.1.1", 5670, 1400, interfaceAddr);
 
     // Thread-safe random number generation
     std::random_device rd;

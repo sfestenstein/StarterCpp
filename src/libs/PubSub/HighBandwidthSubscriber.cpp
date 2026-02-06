@@ -14,9 +14,11 @@
 HighBandwidthSubscriber::HighBandwidthSubscriber(const std::string &name,
                                                  const std::string &multicastAddr,
                                                  uint16_t port,
-                                                 int reassemblyTimeoutMs) :
+                                                 int reassemblyTimeoutMs,
+                                                 const std::string &interfaceAddr) :
     _name(name),
     _multicastAddr(multicastAddr),
+    _interfaceAddr(interfaceAddr),
     _port(port),
     _reassemblyTimeoutMs(reassemblyTimeoutMs)
 {
@@ -88,6 +90,19 @@ bool HighBandwidthSubscriber::start()
         return false;
     }
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+
+    // If a specific interface address was provided, use it for the multicast join
+    if (!_interfaceAddr.empty())
+    {
+        if (inet_pton(AF_INET, _interfaceAddr.c_str(), &mreq.imr_interface) != 1)
+        {
+            GPERROR("Invalid interface address: {}", _interfaceAddr);
+            close(_socket);
+            _socket = -1;
+            return false;
+        }
+        GPINFO("Joining multicast group on interface {}", _interfaceAddr);
+    }
 
     if (setsockopt(_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
     {

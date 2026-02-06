@@ -75,11 +75,14 @@ public:
      * @param port UDP port number (default: 5670)
      * @param reassemblyTimeoutMs Timeout in milliseconds to wait for all fragments
      *        before discarding incomplete messages (default: 1000ms)
+     * @param interfaceAddr Local IP address of the network interface to receive on
+     *        (default: "" uses INADDR_ANY, letting the OS choose)
      */
     HighBandwidthSubscriber(const std::string &name,
                             const std::string &multicastAddr = "239.192.1.1",
                             std::uint16_t port = 5670,
-                            int reassemblyTimeoutMs = 1000);
+                            int reassemblyTimeoutMs = 1000,
+                            const std::string &interfaceAddr = "");
 
     /**
      * @brief Destructor - stops receiving and closes the socket.
@@ -155,6 +158,7 @@ private:
 
     std::string _name;              ///< Namespace for topic filtering
     std::string _multicastAddr;     ///< Multicast group address
+    std::string _interfaceAddr;     ///< Local interface address for multicast
     uint16_t _port;                 ///< UDP port number
     int _reassemblyTimeoutMs;       ///< Timeout for incomplete messages
     int _socket{-1};                ///< UDP socket file descriptor

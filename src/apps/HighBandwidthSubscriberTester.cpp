@@ -2,6 +2,7 @@
 #include <chrono>
 #include <csignal>
 #include <iostream>
+#include <string>
 #include <thread>
 
 #include "GeneralLogger.h"
@@ -10,14 +11,23 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
-int main() 
+int main(int argc, char* argv[]) 
 {
     // Initialize logger
     CommonUtils::GeneralLogger logger;
     logger.init("HighBandwidthSubscriber");
 
-    // High-bandwidth UDP multicast subscriber
-    HighBandwidthSubscriber sub("TestZyre", "239.192.1.1", 5670);
+    // Optional: specify local interface IP via command line
+    // Usage: ./HighBandwidthSubscriber [interface_ip]
+    std::string interfaceAddr;
+    if (argc > 1)
+    {
+        interfaceAddr = argv[1];
+        GPINFO("Using interface address: {}", interfaceAddr);
+    }
+
+    // High-bandwidth UDP multicast subscriber (namespace must match publisher)
+    HighBandwidthSubscriber sub("TestHb", "239.192.1.1", 5670, 1000, interfaceAddr);
 
     // Subscribe to SensorReading messages
     sub.subscribe("SensorReading", [](const std::string &topic, const std::string &data)

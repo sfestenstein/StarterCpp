@@ -54,11 +54,14 @@ public:
      * @param multicastAddr Multicast group address (default: "239.192.1.1")
      * @param port UDP port number (default: 5670)
      * @param mtu Maximum transmission unit in bytes (default: 1400 to leave room for IP/UDP headers)
+     * @param interfaceAddr Local IP address of the network interface to send on
+     *        (default: "" uses INADDR_ANY, letting the OS choose)
      */
     HighBandwidthPublisher(const std::string &name,
                            const std::string &multicastAddr = "239.192.1.1",
                            uint16_t port = 5670,
-                           size_t mtu = 1400);
+                           size_t mtu = 1400,
+                           const std::string &interfaceAddr = "");
 
     /**
      * @brief Destructor - closes the UDP socket.
