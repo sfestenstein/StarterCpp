@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     zsys_handler_set(nullptr);
 
     // Optional: specify local interface IP via command line
-    // Usage: ./ZyrePublisher [interface_ip]
+    // Usage: ./ZyrePublisher [interface_name|interface_ip]
     std::string interfaceAddr;
     if (argc > 1)
     {

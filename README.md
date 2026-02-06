@@ -49,6 +49,12 @@ Install both Debug and Release configurations to a unified build folder:
 conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 ```
 
+If `conan install` fails while building `libsystemd/255` with an error about
+"Unknown filesystems defined in kernel headers" (for example `BCACHEFS_SUPER_MAGIC`),
+this is typically a mismatch between newer Linux kernel headers and the base `255` recipe.
+This project works around it by overriding to a newer `libsystemd/255.x` patch release
+in `conanfile.py`.
+
 This installs all dependencies for all presets (debug, release, coverage, ci-linux).
 
 #### 3. Build and Test

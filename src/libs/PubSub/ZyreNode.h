@@ -13,8 +13,9 @@ public:
     /**
      * @brief Construct a Zyre node.
      * @param name Namespace name for topic isolation
-     * @param interfaceAddr Local IP address of the network interface to use
-     *        (default: "" lets Zyre auto-detect the interface)
+    * @param interfaceAddr Network interface to use.
+    *        Accepts either an interface name (e.g. "eth0", "wlan0", "en0") or a local IP.
+    *        (default: "" lets Zyre auto-detect the interface)
      */
     explicit ZyreNode(const std::string &name,
                       const std::string &interfaceAddr = "");

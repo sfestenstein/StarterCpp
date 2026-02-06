@@ -2,7 +2,57 @@
 
 #include <zyre.h>
 
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
+#include <optional>
+
 #include "GeneralLogger.h"
+
+namespace
+{
+std::optional<std::string> resolveInterfaceNameFromIp(const std::string &ip)
+{
+    ifaddrs *ifaddr = nullptr;
+    if (getifaddrs(&ifaddr) != 0 || !ifaddr)
+    {
+        return std::nullopt;
+    }
+
+    std::optional<std::string> resolved;
+    for (auto *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
+    {
+        if (!ifa->ifa_addr || !ifa->ifa_name)
+        {
+            continue;
+        }
+
+        const int family = ifa->ifa_addr->sa_family;
+        if (family != AF_INET)
+        {
+            continue;
+        }
+
+        char addrBuf[INET_ADDRSTRLEN] = {0};
+        const auto *sin = reinterpret_cast<const sockaddr_in *>(ifa->ifa_addr);
+        if (!inet_ntop(AF_INET, &(sin->sin_addr), addrBuf, sizeof(addrBuf)))
+        {
+            continue;
+        }
+
+        if (ip == addrBuf)
+        {
+            resolved = std::string(ifa->ifa_name);
+            break;
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return resolved;
+}
+}
 
 ZyreNode::ZyreNode(const std::string &name,
                    const std::string &interfaceAddr) : 
@@ -12,8 +62,22 @@ ZyreNode::ZyreNode(const std::string &name,
     // Bind Zyre beacons and traffic to a specific network interface
     if (_node && !interfaceAddr.empty())
     {
-        zyre_set_interface(_node, interfaceAddr.c_str());
-        GPINFO("Zyre node '{}' bound to interface {}", name, interfaceAddr);
+        std::string interfaceName = interfaceAddr;
+
+        // Zyre expects an interface name (e.g. "eth0", "en0").
+        // The test apps historically pass an IP; resolve IP->interface name when possible.
+        if (const auto resolved = resolveInterfaceNameFromIp(interfaceAddr))
+        {
+            interfaceName = *resolved;
+            GPINFO("Resolved interface IP {} -> {}", interfaceAddr, interfaceName);
+        }
+        else
+        {
+            GPINFO("Using interface selector as provided: {}", interfaceName);
+        }
+
+        zyre_set_interface(_node, interfaceName.c_str());
+        GPINFO("Zyre node '{}' bound to interface {}", name, interfaceName);
     }
 }
 

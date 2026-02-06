@@ -49,6 +49,11 @@ void ZyreSubscriber::receiveLoop()
     while (true) 
     {
         zyre_event_t *event = zyre_event_new(_node);
+        if (!event)
+        {
+            // Node likely shutting down
+            break;
+        }
         const char *type = zyre_event_type(event);
 
         // Check for STOP event - indicates zyre_stop() was called
@@ -92,6 +97,22 @@ void ZyreSubscriber::receiveLoop()
                 }
                 zmsg_destroy(&zmsg);
             }
+        }
+
+        if (type && strcmp(type, "ENTER") == 0)
+        {
+            const char *peerName = zyre_event_peer_name(event);
+            const char *peerUuid = zyre_event_peer_uuid(event);
+            GPINFO("Peer ENTER: name={} uuid={}", peerName ? peerName : "(null)",
+                   peerUuid ? peerUuid : "(null)");
+        }
+
+        if (type && strcmp(type, "EXIT") == 0)
+        {
+            const char *peerName = zyre_event_peer_name(event);
+            const char *peerUuid = zyre_event_peer_uuid(event);
+            GPINFO("Peer EXIT: name={} uuid={}", peerName ? peerName : "(null)",
+                   peerUuid ? peerUuid : "(null)");
         }
 
         zyre_event_destroy(&event);
