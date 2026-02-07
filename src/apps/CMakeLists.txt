@@ -45,10 +45,27 @@ add_executable(Vita49FileCodec Vita49FileCodec.cpp)
 target_link_libraries(Vita49FileCodec
    PRIVATE Vita49_2 CommonUtils )
 
+# RealTimeGraphs interactive test application (Qt required)
+if(ENABLE_QT)
+   add_executable(RealTimeGraphsTest RealTimeGraphsTest.cpp)
+
+   target_link_libraries(RealTimeGraphsTest
+      PRIVATE RealTimeGraphs CommonUtils
+              Qt6::Core Qt6::Gui Qt6::Widgets )
+
+   set_target_properties(RealTimeGraphsTest PROPERTIES
+      AUTOMOC ON
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+   )
+endif()
+
 # Set properties
-set_target_properties(
+set(APP_TARGETS
    ZyrePublisher ZyreSubscriber HighBandwidthSubscriber HighBandwidthPublisher
    Vita49RoundTripTest Vita49PerfBenchmark Vita49FileCodec
+)
+
+set_target_properties(${APP_TARGETS}
    PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

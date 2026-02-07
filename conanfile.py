@@ -23,6 +23,7 @@ class StarterCppConan(ConanFile):
       "build_tests": [True, False],
       "enable_coverage": [True, False],
       "enable_sanitizers": [True, False],
+      "enable_qt": [True, False],
    }
 
    default_options = {
@@ -31,6 +32,7 @@ class StarterCppConan(ConanFile):
       "build_tests": True,
       "enable_coverage": False,
       "enable_sanitizers": False,
+      "enable_qt": False,
       "spdlog/*:use_std_fmt": True,  # Use C++20 std::format instead of external fmt
    }
 
@@ -56,6 +58,10 @@ class StarterCppConan(ConanFile):
       if self.settings.os in ["Linux", "FreeBSD"]:
          self.requires("libsystemd/255.10", override=True)
 
+      # Qt 6 (optional — for RealTimeGraphs widget library)
+      if self.options.enable_qt:
+         self.requires("qt/6.10.1")
+
    def build_requirements(self):
       # Unit testing (only needed during build)
       if self.options.build_tests:
@@ -69,6 +75,17 @@ class StarterCppConan(ConanFile):
       # Disable systemd integration in czmq (option name in ConanCenter recipe is `with_systemd`).
       # Note: zyre/2.0.1 still depends on libsystemd on Linux/FreeBSD regardless; see override above.
       self.options["czmq/*"].with_systemd = False
+
+      # Qt 6 options — enable only the modules we need
+      if self.options.enable_qt:
+         self.options["qt/*"].shared = True     # Qt must be shared
+         self.options["qt/*"].qtshadertools = True
+         self.options["qt/*"].gui = True
+         self.options["qt/*"].widgets = True
+         self.options["qt/*"].opengl = "desktop"
+         self.options["qt/*"].with_pq = False       # No PostgreSQL SQL driver
+         self.options["qt/*"].with_odbc = False      # No ODBC SQL driver
+         self.options["qt/*"].with_sqlite3 = False   # No SQLite SQL driver
 
    def layout(self):
       # Use standard CMake layout
@@ -86,5 +103,6 @@ class StarterCppConan(ConanFile):
       tc.variables["BUILD_TESTS"] = self.options.build_tests
       tc.variables["ENABLE_COVERAGE"] = self.options.enable_coverage
       tc.variables["ENABLE_SANITIZERS"] = self.options.enable_sanitizers
+      tc.variables["ENABLE_QT"] = self.options.enable_qt
 
       tc.generate()
