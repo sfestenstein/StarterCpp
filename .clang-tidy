@@ -26,7 +26,8 @@ Checks: >
   -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
   -readability-magic-numbers,
-  -readability-identifier-length
+  -readability-identifier-length,
+  -readability-uppercase-literal-suffix
 
 WarningsAsErrors: ''
 
@@ -53,21 +54,25 @@ CheckOptions:
   - key: readability-identifier-naming.VariableCase
     value: camelBack
   - key: readability-identifier-naming.GlobalConstantCase
-    value: camelBack
+    value: UPPER_CASE
   - key: readability-identifier-naming.GlobalConstantPrefix
-    value: 's_'
+    value: ''
   - key: readability-identifier-naming.StaticConstantCase
-    value: camelBack
+    value: UPPER_CASE
   - key: readability-identifier-naming.StaticConstantPrefix
-    value: 's_'
+    value: ''
   - key: readability-identifier-naming.ConstexprVariableCase
-    value: camelBack
+    value: UPPER_CASE
   - key: readability-identifier-naming.ConstexprVariablePrefix
-    value: 's_'
+    value: ''
   - key: readability-identifier-naming.MemberCase
     value: camelBack
   - key: readability-identifier-naming.MemberPrefix
     value: '_'
+  - key: readability-identifier-naming.PublicMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PublicMemberPrefix
+    value: ''
   - key: readability-identifier-naming.PrivateMemberCase
     value: camelBack
   - key: readability-identifier-naming.PrivateMemberPrefix

@@ -88,6 +88,15 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 ./build/debug/bin/ZyreSubscriber  # In terminal 1
 ./build/debug/bin/ZyrePublisher   # In terminal 2
 
+# (Optional) Bind to a specific network interface.
+# You can pass either an interface name (recommended) or a local IP on that interface.
+#   - Linux examples:  ./build/debug/bin/ZyreSubscriber wlp2s0
+#                     ./build/debug/bin/ZyrePublisher  192.168.1.130
+#   - macOS examples:  ./build/debug/bin/ZyreSubscriber en0
+#                     ./build/debug/bin/ZyrePublisher  192.168.1.42
+# Note: Zyre discovery uses LAN beacons; both machines must be on the same LAN/subnet
+# and firewalls/VPNs/guest Wi-Fi isolation can block peer discovery.
+
 # High-bandwidth UDP multicast pub/sub
 ./build/debug/bin/HighBandwidthSubscriber  # In terminal 1
 ./build/debug/bin/HighBandwidthPublisher   # In terminal 2

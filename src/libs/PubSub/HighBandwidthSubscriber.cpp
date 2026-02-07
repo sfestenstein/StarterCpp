@@ -200,7 +200,7 @@ void HighBandwidthSubscriber::cleanupStaleMessages()
     while (it != _partialMessages.end())
     {
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now - it->second._firstFragmentTime).count();
+            now - it->second.firstFragmentTime).count();
         
         if (elapsed > _reassemblyTimeoutMs)
         {
@@ -226,25 +226,25 @@ void HighBandwidthSubscriber::processFragment(const uint8_t *data, size_t len)
     const uint8_t *payload = data + sizeof(FragmentHeader);
     const size_t payloadLen = len - sizeof(FragmentHeader);
 
-    const std::uint32_t messageId = header->_messageId;
-    const std::uint16_t fragNum = header->_fragmentNum;
-    const std::uint16_t totalFrags = header->_totalFragments;
-    const std::uint16_t topicLen = header->_topicLen;
+    const std::uint32_t messageId = header->messageId;
+    const std::uint16_t fragNum = header->fragmentNum;
+    const std::uint16_t totalFrags = header->totalFragments;
+    const std::uint16_t topicLen = header->topicLen;
 
     const std::lock_guard<std::mutex> lock(_reassemblyMutex);
     // Get or create partial message entry
     auto &partial = _partialMessages[messageId];
     
-    if (partial._fragments.empty())
+    if (partial.fragments.empty())
     {
         // First fragment for this message ID
-        partial._totalFragments = totalFrags;
-        partial._fragments.resize(totalFrags);
-        partial._firstFragmentTime = std::chrono::steady_clock::now();
+        partial.totalFragments = totalFrags;
+        partial.fragments.resize(totalFrags);
+        partial.firstFragmentTime = std::chrono::steady_clock::now();
     }
 
     // Check consistency
-    if (partial._totalFragments != totalFrags)
+    if (partial.totalFragments != totalFrags)
     {
         // Inconsistent fragment count - discard
         _partialMessages.erase(messageId);
@@ -252,7 +252,7 @@ void HighBandwidthSubscriber::processFragment(const uint8_t *data, size_t len)
     }
 
     // Check if we already have this fragment
-    if (partial._receivedFragments.contains(fragNum))
+    if (partial.receivedFragments.contains(fragNum))
     {
         return;  // Duplicate
     }
@@ -266,27 +266,27 @@ void HighBandwidthSubscriber::processFragment(const uint8_t *data, size_t len)
             _partialMessages.erase(messageId);
             return;
         }
-        partial._topic = std::string(reinterpret_cast<const char*>(payload), topicLen);
-        partial._fragments[0] = std::string(reinterpret_cast<const char*>(payload + topicLen), 
+        partial.topic = std::string(reinterpret_cast<const char*>(payload), topicLen);
+        partial.fragments[0] = std::string(reinterpret_cast<const char*>(payload + topicLen), 
                                             payloadLen - topicLen);
     }
     else
     {
-        partial._fragments[fragNum] = std::string(reinterpret_cast<const char*>(payload), payloadLen);
+        partial.fragments[fragNum] = std::string(reinterpret_cast<const char*>(payload), payloadLen);
     }
 
-    partial._receivedFragments.insert(fragNum);
+    partial.receivedFragments.insert(fragNum);
     // Check if message is complete
-    if (partial._receivedFragments.size() == totalFrags)
+    if (partial.receivedFragments.size() == totalFrags)
     {
         // Reassemble payload
         std::string fullPayload;
-        for (const auto &frag : partial._fragments)
+        for (const auto &frag : partial.fragments)
         {
             fullPayload += frag;
         }
 
-        const std::string topic = partial._topic;
+        const std::string topic = partial.topic;
         _partialMessages.erase(messageId);
 
         // Release lock before calling handler

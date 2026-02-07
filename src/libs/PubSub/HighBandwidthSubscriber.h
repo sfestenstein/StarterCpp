@@ -24,11 +24,11 @@ struct FragmentHeader;
  */
 struct PartialMessage
 {
-    std::string _topic;                                      ///< Topic extracted from fragment 0
-    std::vector<std::string> _fragments;                     ///< Fragment payloads indexed by fragment number
-    std::unordered_set<uint16_t> _receivedFragments;         ///< Set of received fragment numbers
-    uint16_t _totalFragments;                                ///< Expected total number of fragments
-    std::chrono::steady_clock::time_point _firstFragmentTime; ///< Timestamp of first fragment arrival
+    std::string                  topic;                      ///< Topic extracted from fragment 0
+    std::vector<std::string>     fragments;                  ///< Fragment payloads indexed by fragment number
+    std::unordered_set<uint16_t> receivedFragments;          ///< Set of received fragment numbers
+    uint16_t                     totalFragments;             ///< Expected total number of fragments
+    std::chrono::steady_clock::time_point firstFragmentTime; ///< Timestamp of first fragment arrival
 };
 
 /**

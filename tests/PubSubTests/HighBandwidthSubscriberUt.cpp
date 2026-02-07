@@ -61,11 +61,11 @@ protected:
    {
       std::vector<uint8_t> buffer;
       FragmentHeader header{};
-      header._messageId = msgId;
-      header._fragmentNum = fragNum;
-      header._totalFragments = totalFrags;
-      header._topicLen = (fragNum == 0) ? static_cast<uint16_t>(topic.size()) : 0;
-      header._reserved = 0;
+      header.messageId = msgId;
+      header.fragmentNum = fragNum;
+      header.totalFragments = totalFrags;
+      header.topicLen = (fragNum == 0) ? static_cast<uint16_t>(topic.size()) : 0;
+      header.reserved = 0;
 
       buffer.resize(sizeof(FragmentHeader) + (fragNum == 0 ? topic.size() : 0) + payload.size());
       std::memcpy(buffer.data(), &header, sizeof(header));
@@ -87,8 +87,8 @@ protected:
    {
       const std::lock_guard<std::mutex> lock(sub._reassemblyMutex);
       PartialMessage pm;
-      pm._totalFragments = 2;
-      pm._firstFragmentTime = timestamp;
+      pm.totalFragments = 2;
+      pm.firstFragmentTime = timestamp;
       sub._partialMessages[msgId] = pm;
    }
 

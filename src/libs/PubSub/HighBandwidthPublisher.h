@@ -16,11 +16,11 @@
  */
 struct FragmentHeader
 {
-    uint32_t _messageId;      ///< Unique ID for this message (groups fragments together)
-    uint16_t _fragmentNum;    ///< Fragment number (0-based index)
-    uint16_t _totalFragments; ///< Total number of fragments in the message
-    uint16_t _topicLen;       ///< Length of topic string (only meaningful in fragment 0)
-    uint16_t _reserved;       ///< Padding for alignment
+    uint32_t messageId;      ///< Unique ID for this message (groups fragments together)
+    uint16_t fragmentNum;    ///< Fragment number (0-based index)
+    uint16_t totalFragments; ///< Total number of fragments in the message
+    uint16_t topicLen;       ///< Length of topic string (only meaningful in fragment 0)
+    uint16_t reserved;       ///< Padding for alignment
 } __attribute__((packed));
 
 /**

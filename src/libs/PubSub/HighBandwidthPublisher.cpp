@@ -139,11 +139,11 @@ bool HighBandwidthPublisher::publish(const std::string &topic,
     for (std::uint16_t fragNum = 0; fragNum < numFragments; ++fragNum)
     {
         auto* header = reinterpret_cast<FragmentHeader*>(packet.data());
-        header->_messageId = messageId;
-        header->_fragmentNum = fragNum;
-        header->_totalFragments = numFragments;
-        header->_topicLen = (fragNum == 0) ? static_cast<uint16_t>(topicSize) : 0;
-        header->_reserved = 0;
+        header->messageId = messageId;
+        header->fragmentNum = fragNum;
+        header->totalFragments = numFragments;
+        header->topicLen = (fragNum == 0) ? static_cast<uint16_t>(topicSize) : 0;
+        header->reserved = 0;
 
         size_t packetDataOffset = sizeof(FragmentHeader);
         size_t bytesToSend = 0;

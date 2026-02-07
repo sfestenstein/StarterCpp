@@ -35,14 +35,14 @@ std::optional<std::string> resolveInterfaceNameFromIp(const std::string &ip)
             continue;
         }
 
-        char addrBuf[INET_ADDRSTRLEN] = {0};
+        std::array<char, INET_ADDRSTRLEN> addrBuf = {0};
         const auto *sin = reinterpret_cast<const sockaddr_in *>(ifa->ifa_addr);
-        if (!inet_ntop(AF_INET, &(sin->sin_addr), addrBuf, sizeof(addrBuf)))
+        if (!inet_ntop(AF_INET, &(sin->sin_addr), addrBuf.data(), addrBuf.size()))
         {
             continue;
         }
 
-        if (ip == addrBuf)
+        if (ip == addrBuf.data())
         {
             resolved = std::string(ifa->ifa_name);
             break;

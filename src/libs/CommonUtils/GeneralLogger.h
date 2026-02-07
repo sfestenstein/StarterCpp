@@ -37,9 +37,9 @@ namespace CommonUtils
 {
 
 /** @brief Name identifier for the general logger. */
-static constexpr std::string_view s_generalLoggerName = "generalLogger";
+static constexpr std::string_view GENERALLOGGER_NAME = "generalLogger";
 /** @brief Name identifier for the trace logger. */
-static constexpr std::string_view s_traceLoggerName = "traceLogger";
+static constexpr std::string_view TRACELOGGER_NAME = "traceLogger";
 
 /**
  * @class GeneralLogger
@@ -100,7 +100,7 @@ public:
 
 private:
     /** @brief Log message format pattern. */
-    static constexpr std::string_view s_logPattern = "%Y%m%d_%H%M%S.%e [%t][%s::%! %# %l] %v";
+    static constexpr std::string_view LOG_PATTERN = "%Y%m%d_%H%M%S.%e [%t][%s::%! %# %l] %v";
     /** @brief Flag indicating whether the logger has been initialized. */
     std::atomic_bool _isInited = false;
 }; 

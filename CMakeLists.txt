@@ -152,6 +152,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(src/libs/CommonUtils)
 add_subdirectory(src/libs/proto)
 add_subdirectory(src/libs/PubSub)
+add_subdirectory(src/libs/Vita49_2)
 
 # Applications
 add_subdirectory(src/apps)
@@ -161,6 +162,7 @@ if(BUILD_TESTS)
    enable_testing()
    add_subdirectory(tests/CommonUtilsTests)
    add_subdirectory(tests/PubSubTests)
+   add_subdirectory(tests/Vita49_2Tests)
 endif()
 
 # =============================================================================
@@ -169,7 +171,7 @@ endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS CommonUtils ProtoLib PubSubLib
+install(TARGETS CommonUtils ProtoLib PubSubLib Vita49_2
    EXPORT StarterCppTargets
    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
