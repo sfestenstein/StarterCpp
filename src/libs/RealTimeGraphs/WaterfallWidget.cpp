@@ -1,5 +1,7 @@
 #include "RealTimeGraphs/WaterfallWidget.h"
 
+#include "RealTimeGraphs/ColorBarWidget.h"
+
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
@@ -22,6 +24,10 @@ WaterfallWidget::WaterfallWidget(int historyRows, QWidget* parent)
 {
    setMinimumSize(minimumSizeHint());
    setAttribute(Qt::WA_OpaquePaintEvent);
+
+   _colorBar = new ColorBarStrip(this);
+   _colorBar->setDbRange(_minDb, _maxDb);
+   _colorBar->setColorMap(_colorMap);
 }
 
 // ============================================================================
@@ -50,6 +56,7 @@ void WaterfallWidget::setDbRange(float minDb, float maxDb)
 {
    _minDb = minDb;
    _maxDb = maxDb;
+   _colorBar->setDbRange(minDb, maxDb);
    update();
 }
 
@@ -62,6 +69,7 @@ void WaterfallWidget::setInputIsDb(bool isDb)
 void WaterfallWidget::setColorMap(ColorMap::Palette palette)
 {
    _colorMap = ColorMap(palette);
+   _colorBar->setColorMap(_colorMap);
    update();
 }
 
@@ -75,6 +83,12 @@ void WaterfallWidget::setFrequencyRange(double centerFreqHz, double bandwidthHz)
 QSize WaterfallWidget::minimumSizeHint() const
 {
    return {320, 200};
+}
+
+void WaterfallWidget::setColorBarVisible(bool visible)
+{
+   _colorBar->setVisible(visible);
+   update();
 }
 
 // ============================================================================
@@ -128,6 +142,16 @@ void WaterfallWidget::paintEvent(QPaintEvent* /*event*/)
 void WaterfallWidget::resizeEvent(QResizeEvent* event)
 {
    QWidget::resizeEvent(event);
+
+   QRect area(MARGIN_LEFT, MARGIN_TOP,
+              width() - MARGIN_LEFT - MARGIN_RIGHT,
+              height() - MARGIN_TOP - MARGIN_BOTTOM);
+   _colorBar->setGeometry(
+      area.right() + 5,
+      area.top(),
+      COLOR_BAR_WIDTH,
+      area.height());
+
    update();
 }
 

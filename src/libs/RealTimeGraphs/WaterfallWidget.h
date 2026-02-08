@@ -17,6 +17,8 @@
 namespace RealTimeGraphs
 {
 
+class ColorBarStrip; // forward declaration
+
 /// Custom QPainter-based waterfall / spectrogram widget.
 ///
 /// Each call to `addRow()` pushes a new frequency-domain row onto the
@@ -50,6 +52,9 @@ public:
    /// @param centerFreqHz  Centre frequency in Hz.
    /// @param bandwidthHz   Total bandwidth in Hz.
    void setFrequencyRange(double centerFreqHz, double bandwidthHz);
+
+   /// Show or hide the built-in colour-bar legend.
+   void setColorBarVisible(bool visible);
 
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
@@ -90,9 +95,13 @@ private:
    double _centerFreqHz{0.0};
    double _bandwidthHz{0.0};
 
+   // Embedded colour bar
+   ColorBarStrip* _colorBar{nullptr};
+   static constexpr int COLOR_BAR_WIDTH = 68;
+
    // Layout margins
    static constexpr int MARGIN_LEFT   = 55;
-   static constexpr int MARGIN_RIGHT  = 15;
+   static constexpr int MARGIN_RIGHT  = 83;  // COLOR_BAR_WIDTH + 15
    static constexpr int MARGIN_TOP    = 10;
    static constexpr int MARGIN_BOTTOM = 40;
 };

@@ -1,9 +1,12 @@
 #include "RealTimeGraphs/SpectrumWidget.h"
 
+#include "RealTimeGraphs/ColorBarWidget.h"
+
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPaintEvent>
+#include <QResizeEvent>
 
 #include <algorithm>
 #include <cmath>
@@ -22,6 +25,10 @@ SpectrumWidget::SpectrumWidget(QWidget* parent)
 {
    setMinimumSize(minimumSizeHint());
    setAttribute(Qt::WA_OpaquePaintEvent);
+
+   _colorBar = new ColorBarStrip(this);
+   _colorBar->setDbRange(_minDb, _maxDb);
+   _colorBar->setColorMap(_colorMap);
 }
 
 // ============================================================================
@@ -43,6 +50,7 @@ void SpectrumWidget::setDbRange(float minDb, float maxDb)
    _maxDb = maxDb;
    _viewMinDb = static_cast<double>(minDb);
    _viewMaxDb = static_cast<double>(maxDb);
+   syncColorBar();
    update();
 }
 
@@ -55,6 +63,7 @@ void SpectrumWidget::setInputIsDb(bool isDb)
 void SpectrumWidget::setColorMap(ColorMap::Palette palette)
 {
    _colorMap = ColorMap(palette);
+   syncColorBar();
    update();
 }
 
@@ -84,6 +93,13 @@ void SpectrumWidget::resetView()
    _viewMaxDb  = static_cast<double>(_maxDb);
    _viewXStart = 0.0;
    _viewXEnd   = 1.0;
+   syncColorBar();
+   update();
+}
+
+void SpectrumWidget::setColorBarVisible(bool visible)
+{
+   _colorBar->setVisible(visible);
    update();
 }
 
@@ -97,6 +113,17 @@ QRect SpectrumWidget::plotArea() const
 // ============================================================================
 // Paint
 // ============================================================================
+
+void SpectrumWidget::resizeEvent(QResizeEvent* event)
+{
+   QWidget::resizeEvent(event);
+   QRect area = plotArea();
+   _colorBar->setGeometry(
+      area.right() + 5,
+      area.top(),
+      COLOR_BAR_WIDTH,
+      area.height());
+}
 
 void SpectrumWidget::paintEvent(QPaintEvent* /*event*/)
 {
@@ -305,8 +332,9 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
 
    // Determine which axis region the cursor is in:
    //   Y-axis margin (left of plot), X-axis margin (below plot), or plot area.
+   //   The colour-bar area (right of plot) also counts as Y-axis.
    bool inPlot   = area.contains(pos.toPoint());
-   bool inYMargin = (pos.x() < area.left() &&
+   bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
                      pos.y() >= area.top() && pos.y() <= area.bottom());
    bool inXMargin = (pos.y() > area.bottom() &&
                      pos.x() >= area.left() && pos.x() <= area.right());
@@ -347,6 +375,7 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
       _viewXEnd   = std::min(1.0, newXEnd);
    }
 
+   syncColorBar();
    update();
    event->accept();
 }
@@ -359,7 +388,7 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* event)
       QPoint pos = event->pos();
 
       bool inPlot   = area.contains(pos);
-      bool inYMargin = (pos.x() < area.left() &&
+      bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
                         pos.y() >= area.top() && pos.y() <= area.bottom());
       bool inXMargin = (pos.y() > area.bottom() &&
                         pos.x() >= area.left() && pos.x() <= area.right());
@@ -436,6 +465,7 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
          _viewMaxDb = _panStartMaxDb + dyDb;
       }
 
+      syncColorBar();
       update();
       event->accept();
    }
@@ -475,6 +505,13 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* event)
 // ============================================================================
 // Utilities
 // ============================================================================
+
+void SpectrumWidget::syncColorBar()
+{
+   _colorBar->setDbRange(static_cast<float>(_viewMinDb),
+                         static_cast<float>(_viewMaxDb));
+   _colorBar->setColorMap(_colorMap);
+}
 
 float SpectrumWidget::toNormalised(float value) const
 {

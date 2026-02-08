@@ -18,6 +18,8 @@
 namespace RealTimeGraphs
 {
 
+class ColorBarStrip; // forward declaration
+
 /// Custom QPainter-based spectrum / FFT bar-chart widget.
 ///
 /// Renders a horizontal frequency axis and a vertical amplitude axis.
@@ -59,11 +61,15 @@ public:
    /// This can also be triggered by double-clicking the plot.
    void resetView();
 
+   /// Show or hide the built-in colour-bar legend.
+   void setColorBarVisible(bool visible);
+
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
 
 protected:
    void paintEvent(QPaintEvent* event) override;
+   void resizeEvent(QResizeEvent* event) override;
    void wheelEvent(QWheelEvent* event) override;
    void mousePressEvent(QMouseEvent* event) override;
    void mouseMoveEvent(QMouseEvent* event) override;
@@ -84,6 +90,9 @@ private:
 
    /// Convert a linear magnitude to normalised [0, 1] within the current view range.
    [[nodiscard]] float toNormalised(float value) const;
+
+   /// Sync the colour-bar strip with the current view range and palette.
+   void syncColorBar();
 
    std::mutex _mutex;
    std::vector<float> _data;
@@ -115,9 +124,13 @@ private:
    double _panStartXStart{0.0};
    double _panStartXEnd{0.0};
 
+   // Embedded colour bar
+   ColorBarStrip* _colorBar{nullptr};
+   static constexpr int COLOR_BAR_WIDTH = 68;
+
    // Layout margins
    static constexpr int MARGIN_LEFT   = 55;
-   static constexpr int MARGIN_RIGHT  = 15;
+   static constexpr int MARGIN_RIGHT  = 83;  // COLOR_BAR_WIDTH + 15
    static constexpr int MARGIN_TOP    = 10;
    static constexpr int MARGIN_BOTTOM = 40;
 };
