@@ -37,7 +37,6 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(ENABLE_COVERAGE "Enable code coverage reporting" OFF)
 option(ENABLE_SANITIZERS "Enable ASan and UBSan" OFF)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy static analysis" OFF)
-option(ENABLE_QT "Enable Qt-based RealTimeGraphs library" OFF)
 
 # =============================================================================
 # Compiler Warnings
@@ -133,28 +132,34 @@ find_package(spdlog REQUIRED)
 find_package(protobuf REQUIRED)
 find_package(cppzmq REQUIRED)
 
-if(ENABLE_QT)
-   # Conan CMakeDeps generates Qt6Config.cmake which:
-   #  1. Creates component targets (Qt6::Core, Qt6::Gui, Qt6::Widgets, …)
-   #  2. Includes Qt's native build modules (Qt6CoreMacros.cmake for AUTOMOC,
-   #     conan_qt_executables_variables.cmake for Qt6::moc/uic/rcc targets)
-   find_package(Qt6 REQUIRED)
-   message(STATUS "Found Qt6: ${Qt6_VERSION_STRING}")
+# Conan CMakeDeps generates Qt6Config.cmake which:
+#  1. Creates component targets (Qt6::Core, Qt6::Gui, Qt6::Widgets, …)
+#  2. Includes Qt's native build modules (Qt6CoreMacros.cmake for AUTOMOC,
+#     conan_qt_executables_variables.cmake for Qt6::moc/uic/rcc targets)
+find_package(Qt6 REQUIRED)
+message(STATUS "Found Qt6: ${Qt6_VERSION_STRING}")
 
-   # The Conan-installed Qt is Release-only.  The Qt tool targets (moc, uic,
-   # rcc, etc.) only have a plain IMPORTED_LOCATION property (no per-config
-   # suffix).  When CMAKE_MAP_IMPORTED_CONFIG_DEBUG is set to "Release", CMake
-   # looks for IMPORTED_LOCATION_RELEASE first and fails.  Mapping Debug → ""
-   # (empty string) makes CMake fall back to the plain IMPORTED_LOCATION.
-   foreach(_qt_tool moc uic rcc qlalr tracegen cmake_automoc_parser
-                    qmake qtpaths syncqt tracepointgen qvkgen qsb)
-      if(TARGET Qt6::${_qt_tool})
-         set_target_properties(Qt6::${_qt_tool} PROPERTIES
-            MAP_IMPORTED_CONFIG_DEBUG ""
-         )
-      endif()
-   endforeach()
-endif()
+# The Conan-installed Qt is Release-only.  The Qt tool targets (moc, uic,
+# rcc, etc.) only have a plain IMPORTED_LOCATION property (no per-config
+# suffix).  When CMAKE_MAP_IMPORTED_CONFIG_DEBUG is set to "Release", CMake
+# looks for IMPORTED_LOCATION_RELEASE first and fails.  Mapping Debug → ""
+# (empty string) makes CMake fall back to the plain IMPORTED_LOCATION.
+#
+# We iterate all known Qt tool targets rather than maintaining a hand-picked
+# list, so this works on both macOS (macdeployqt) and Linux (androiddeployqt,
+# qdbusxml2cpp, etc.) without per-platform updates.
+set(_qt_tool_names
+   moc uic rcc qlalr tracegen cmake_automoc_parser
+   qmake qtpaths syncqt tracepointgen qvkgen qsb
+   macdeployqt androiddeployqt qdbusxml2cpp qdbus
+)
+foreach(_qt_tool IN LISTS _qt_tool_names)
+   if(TARGET Qt6::${_qt_tool})
+      set_target_properties(Qt6::${_qt_tool} PROPERTIES
+         MAP_IMPORTED_CONFIG_DEBUG ""
+      )
+   endif()
+endforeach()
 
 if(BUILD_TESTS)
    find_package(GTest REQUIRED)
@@ -177,10 +182,7 @@ add_subdirectory(src/libs/CommonUtils)
 add_subdirectory(src/libs/proto)
 add_subdirectory(src/libs/PubSub)
 add_subdirectory(src/libs/Vita49_2)
-
-if(ENABLE_QT)
-   add_subdirectory(src/libs/RealTimeGraphs)
-endif()
+add_subdirectory(src/libs/RealTimeGraphs)
 
 # Applications
 add_subdirectory(src/apps)
@@ -199,10 +201,7 @@ endif()
 
 include(GNUInstallDirs)
 
-set(INSTALL_TARGETS CommonUtils ProtoLib PubSubLib Vita49_2)
-if(ENABLE_QT)
-   list(APPEND INSTALL_TARGETS RealTimeGraphs)
-endif()
+set(INSTALL_TARGETS CommonUtils ProtoLib PubSubLib Vita49_2 RealTimeGraphs)
 
 install(TARGETS ${INSTALL_TARGETS}
    EXPORT StarterCppTargets
@@ -226,10 +225,6 @@ message(STATUS "  Build tests:      ${BUILD_TESTS}")
 message(STATUS "  Coverage:         ${ENABLE_COVERAGE}")
 message(STATUS "  Sanitizers:       ${ENABLE_SANITIZERS}")
 message(STATUS "  Clang-tidy:       ${ENABLE_CLANG_TIDY}")
-if(ENABLE_QT)
-   message(STATUS "  Qt6:              ${Qt6_VERSION}")
-else()
-   message(STATUS "  Qt6:              OFF")
-endif()
+message(STATUS "  Qt6:              ${Qt6_VERSION}")
 message(STATUS "================================")
 message(STATUS "")

@@ -218,6 +218,14 @@ int myFunction(int param1, std::string_view param2);
 2. Files are auto-discovered via `file(GLOB)` in `src/libs/proto/CMakeLists.txt`
 3. Re-run CMake configure to pick up new files
 
+### Adding a New RealTimeGraphs Widget (Qt 6)
+
+1. Create header: `src/libs/RealTimeGraphs/NewWidget.h`
+2. Create source: `src/libs/RealTimeGraphs/NewWidget.cpp`
+3. Files are auto-discovered via `file(GLOB)` in `src/libs/RealTimeGraphs/CMakeLists.txt`
+4. `AUTOMOC` is enabled on this target, so Qt signals/slots are handled automatically
+5. Re-run CMake configure to pick up new files
+
 ### Adding a New Application
 
 1. Create source: `src/apps/new_app_main.cpp`

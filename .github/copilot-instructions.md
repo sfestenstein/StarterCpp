@@ -9,7 +9,7 @@ StarterCpp is a C++20 starter project template using:
 - **Package Manager**: Conan 2.0
 - **Compiler**: GCC 13+ or Clang 15+ (Linux/macOS)
 - **Testing**: Google Test
-- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre
+- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre, Qt 6
 
 ## Project Structure
 
@@ -20,7 +20,8 @@ StarterCpp/
 │   │   ├── ZyrePublisherTest.cpp
 │   │   ├── ZyreSubscriberTest.cpp
 │   │   ├── HighBandwidthPublisherTester.cpp
-│   │   └── HighBandwidthSubscriberTester.cpp
+│   │   ├── HighBandwidthSubscriberTester.cpp
+│   │   └── RealTimeGraphsTest.cpp      # Qt app
 │   └── libs/               # Libraries
 │       ├── CommonUtils/    # Common utility library
 │       │   ├── GeneralLogger.h   # Async spdlog wrapper with macros
@@ -29,6 +30,7 @@ StarterCpp/
 │       │   ├── Timer.cpp
 │       │   ├── SnoozableTimer.h  # Timer with snooze capability
 │       │   ├── SnoozableTimer.cpp
+│       │   ├── CircularBuffer.h  # Lock-free circular buffer
 │       │   └── DataHandler.h     # Data handling (header-only)
 │       ├── PubSub/         # Publish-Subscribe library
 │       │   ├── ZyreNode.h        # Base Zyre node class
@@ -36,6 +38,11 @@ StarterCpp/
 │       │   ├── ZyreSubscriber.h  # Zyre-based subscriber
 │       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
 │       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
+│       ├── RealTimeGraphs/ # Qt widget library
+│       │   ├── SpectrumWidget.h      # Real-time spectrum display
+│       │   ├── WaterfallWidget.h     # Waterfall/spectrogram display
+│       │   ├── ConstellationWidget.h # IQ constellation display
+│       │   └── ColorMap.h            # Color map utilities
 │       └── proto/          # Protocol buffer library
 │           └── proto-messages/ # .proto source files
 ├── tests/                  # Unit tests
@@ -127,6 +134,13 @@ private:
 2. Proto files are auto-discovered via glob in `src/libs/proto/CMakeLists.txt`
 3. Include generated header as `#include "message_name.pb.h"`
 
+### Adding a New RealTimeGraphs Widget (Qt 6)
+
+1. Create `src/libs/RealTimeGraphs/NewWidget.h`
+2. Create `src/libs/RealTimeGraphs/NewWidget.cpp` (auto-discovered via `file(GLOB)`)
+3. AUTOMOC is enabled; Qt signals/slots are processed automatically
+4. Re-run CMake configure to pick up new files
+
 ### Adding a New Application
 
 1. Create `src/apps/new_app_main.cpp`
@@ -140,7 +154,6 @@ private:
 
 ```bash
 # Install dependencies (both configurations to unified folder)
-
 conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 
 # Configure
@@ -165,6 +178,8 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 - `ZyreSubscriber` - Zyre subscriber test application
 - `HighBandwidthPublisher` - UDP multicast publisher test application
 - `HighBandwidthSubscriber` - UDP multicast subscriber test application
+- `RealTimeGraphs` - Qt widget library
+- `RealTimeGraphsTest` - Qt interactive test application
 - `CommonUtilsTests` - CommonUtils unit tests
 - `PubSubTests` - PubSub unit tests
 - `CommonUtilsCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
@@ -181,6 +196,7 @@ When suggesting code, these libraries are available:
 | ZeroMQ | `<zmq.hpp>` | `zmq::context_t`, `zmq::socket_t` |
 | CZMQ | `<czmq.h>` | `zsock_t`, `zactor_t` |
 | Zyre | `<zyre.h>` | `zyre_t` |
+| Qt 6 | `<QWidget>`, `<QPainter>` | `Qt6::Core`, `Qt6::Gui`, `Qt6::Widgets`, `Qt6::OpenGLWidgets` |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
 
 ## Testing Patterns

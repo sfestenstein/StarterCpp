@@ -11,33 +11,43 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 ### Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Applications                                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
-│  │ ZyrePublisher   │  │ ZyreSubscriber  │  │ HighBandwidth Pub/Sub       │  │
-│  │ (Zyre P2P)      │  │ (Zyre P2P)      │  │ (UDP Multicast)             │  │
-│  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘  │
-│           │                    │                          │                  │
-├───────────┴────────────────────┴──────────────────────────┴──────────────────┤
-│                              Libraries                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                         PubSub Library                                   │ │
-│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐  │ │
-│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │  │ │
-│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │  │ │
-│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-│  ┌─────────────────┐                    ┌─────────────────┐                  │
-│  │   Proto Lib     │                    │  CommonUtils    │                  │
-│  │   (protobuf)    │                    │  (utilities)    │                  │
-│  └─────────────────┘                    └─────────────────┘                  │
-│                                                                              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                         External Dependencies                                │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
-│  │ spdlog │ │protobuf│ │ ZeroMQ │ │ cppzmq │ │  CZMQ  │ │  Zyre  │          │
-│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                              Applications                                        │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐       │
+│  │ ZyrePublisher   │  │ ZyreSubscriber  │  │ HighBandwidth Pub/Sub       │       │
+│  │ (Zyre P2P)      │  │ (Zyre P2P)      │  │ (UDP Multicast)             │       │
+│  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘       │
+│           │                    │                          │                       │
+│  ┌─────────────────────────────────────┐                                      │
+│  │ RealTimeGraphsTest (Qt 6)            │                                      │
+│  └───────────────┬─────────────────────┘                                      │
+│                      │                                                           │
+├──────────────────────┼───────────────────────────────────────────────────────────┤
+│                      │         Libraries                                         │
+│  ┌───────────────────────────────────────────────────────────────────────────┐   │
+│  │                         PubSub Library                                     │   │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │    │   │
+│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │    │   │
+│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘    │   │
+│  └───────────────────────────────────────────────────────────────────────────┘   │
+│  ┌───────────────────────────────────────────────────────────────────────────┐   │
+│  │              RealTimeGraphs Library (Qt 6)                                  │   │
+│  │  ┌─────────────────┐ ┌───────────────────┐ ┌───────────────────────────┐  │   │
+│  │  │ SpectrumWidget  │ │ WaterfallWidget   │ │ ConstellationWidget       │  │   │
+│  │  └─────────────────┘ └───────────────────┘ └───────────────────────────┘  │   │
+│  └───────────────────────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────┐                    ┌─────────────────┐                      │
+│  │   Proto Lib     │                    │  CommonUtils    │                      │
+│  │   (protobuf)    │                    │  (utilities)    │                      │
+│  └─────────────────┘                    └─────────────────┘                      │
+│                                                                                  │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                         External Dependencies                                    │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐  │
+│  │ spdlog │ │protobuf│ │ ZeroMQ │ │ cppzmq │ │  CZMQ  │ │  Zyre  │ │  Qt 6  │  │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘  │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Libraries
@@ -102,6 +112,22 @@ The PubSub library provides two messaging patterns:
   - Configurable reassembly timeout
   - Thread-safe subscription (can subscribe before or after start)
 
+#### RealTimeGraphs Library (`src/libs/RealTimeGraphs/`)
+
+The RealTimeGraphs library provides custom QPainter-based widgets for real-time
+signal visualization.
+
+- **SpectrumWidget**: Real-time spectrum (frequency-domain) display
+- **WaterfallWidget**: Waterfall / spectrogram display
+- **ConstellationWidget**: IQ constellation diagram
+- **ColorMap**: Configurable colour-map utilities used by the widgets
+
+Dependencies: Qt6::Core, Qt6::Gui, Qt6::Widgets, Qt6::OpenGLWidgets, spdlog,
+CommonUtils.
+
+CMake enables `AUTOMOC` on this target so that Qt signals/slots are processed
+automatically.
+
 #### Proto Library (`src/libs/proto/`)
 
 The protocol buffer library compiles `.proto` files from `src/libs/proto/proto-messages/` into C++ classes:
@@ -141,6 +167,12 @@ Demonstrates:
 - UDP multicast subscription
 - Fragment reassembly
 - High-throughput message reception
+
+#### RealTimeGraphsTest (`src/apps/RealTimeGraphsTest.cpp`)
+
+Demonstrates:
+- Interactive Qt application using the RealTimeGraphs widget library
+- Spectrum, waterfall, and constellation displays
 
 ## Design Decisions
 

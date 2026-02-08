@@ -36,6 +36,19 @@ sudo apt-get install -y \
    python3-pip \
    lcov
 
+# Qt 6 requires OpenGL, X11 and XCB development headers
+sudo apt-get install -y \
+   libgl-dev \
+   libx11-xcb-dev \
+   libfontenc-dev \
+   libxkbfile-dev \
+   libxcb-cursor-dev \
+   libxcb-icccm4-dev \
+   libxcb-keysyms1-dev \
+   libxcb-shape0-dev \
+   libxcb-xkb-dev \
+   libxrender-dev
+
 pip3 install conan
 ```
 
@@ -96,6 +109,9 @@ cmake --build --preset debug
 # Test
 ctest --preset debug
 ```
+
+> **Note:** The first build can take 20–60+ minutes as Conan compiles Qt 6 and its
+> transitive dependencies from source. Subsequent builds use the Conan cache.
 
 ### Release Build
 
@@ -227,3 +243,20 @@ ASan may have issues with some MinGW versions. Disable if needed:
 conan install . -o enable_sanitizers=False ...
 cmake ... -DENABLE_SANITIZERS=OFF
 ```
+
+### Qt / RealTimeGraphs Build Issues
+
+If CMake fails with `Could not find a package configuration file provided by "Qt6"`:
+- Ensure `conan install` completed successfully — Qt 6 is a required dependency and
+  its packages must be available for the CMake configure step.
+
+If the Qt Conan build itself fails:
+- Qt 6 requires OpenGL development headers on your system. On Linux:
+  ```bash
+  sudo apt-get install -y libgl-dev libx11-xcb-dev libfontenc-dev \
+     libxkbfile-dev libxcb-cursor-dev libxcb-icccm4-dev libxcb-keysyms1-dev \
+     libxcb-shape0-dev libxcb-xkb-dev libxrender-dev
+  ```
+- On macOS, Xcode command-line tools provide the required OpenGL frameworks.
+- The first build of Qt from source takes a long time (20–60+ minutes). Subsequent
+  builds use the Conan binary cache.

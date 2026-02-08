@@ -13,6 +13,7 @@ A robust, production-ready C++20 starter project template with modern build tool
 - **Zyre** for peer-to-peer discovery and messaging
 - **CZMQ** high-level C binding for ZeroMQ
 - **spdlog** for logging
+- **Qt 6** for real-time graph widgets
 - **Code quality tools**: clang-format, clang-tidy
 - **Sanitizers**: AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan)
 - **Code coverage** with gcov/lcov
@@ -27,6 +28,7 @@ A robust, production-ready C++20 starter project template with modern build tool
 - **Conan**: 2.0+
 - **Build Tool**: Ninja (recommended) or Make
 - **Python**: 3.8+ (for Conan)
+- **Linux only**: OpenGL / X11 / XCB development headers (see [Build Guide](docs/BUILD.md#linux-ubuntudebian))
 
 ### Build Instructions
 
@@ -48,6 +50,10 @@ Install both Debug and Release configurations to a unified build folder:
 ```bash
 conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
 ```
+
+> **Note:** The first build can take 20–60+ minutes as Conan builds Qt 6 and its
+> transitive dependencies (OpenGL, Freetype, Harfbuzz, etc.) from source.
+> Subsequent builds use the Conan binary cache.
 
 If `conan install` fails while building `libsystemd/255` with an error about
 "Unknown filesystems defined in kernel headers" (for example `BCACHEFS_SUPER_MAGIC`),
@@ -100,6 +106,9 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 # High-bandwidth UDP multicast pub/sub
 ./build/debug/bin/HighBandwidthSubscriber  # In terminal 1
 ./build/debug/bin/HighBandwidthPublisher   # In terminal 2
+
+# RealTimeGraphs interactive test
+./build/debug/bin/RealTimeGraphsTest
 ```
 
 ## Project Structure
@@ -117,6 +126,7 @@ StarterCpp/
 │       │   ├── GeneralLogger.h       # Async logging wrapper (spdlog)
 │       │   ├── Timer.h               # Basic timer class
 │       │   ├── SnoozableTimer.h      # Timer with snooze capability
+│       │   ├── CircularBuffer.h      # Lock-free circular buffer
 │       │   └── DataHandler.h         # Data handling utilities
 │       ├── PubSub/               # Publish-Subscribe library
 │       │   ├── ZyreNode.h            # Base Zyre node class
@@ -124,6 +134,12 @@ StarterCpp/
 │       │   ├── ZyreSubscriber.h      # Zyre-based subscriber
 │       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
 │       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
+│       ├── RealTimeGraphs/       # Qt widget library
+│       │   ├── SpectrumWidget.h      # Real-time spectrum display
+│       │   ├── WaterfallWidget.h     # Waterfall/spectrogram display
+│       │   ├── ConstellationWidget.h # IQ constellation display
+│       │   └── ColorMap.h            # Color map utilities
+│       ├── Vita49_2/             # VITA 49.2 packet library
 │       └── proto/                # Protocol buffer library
 │           └── proto-messages/       # Protocol buffer definitions
 │               ├── sensor_data.proto
@@ -212,6 +228,7 @@ Managed by Conan 2.0:
 | czmq | 4.2.1 | High-level C ZeroMQ binding |
 | zyre | 2.0.1 | Peer-to-peer discovery |
 | gtest | 1.14.0 | Unit testing |
+| qt | 6.10.1 | GUI widgets (RealTimeGraphs) |
 
 ## License
 
