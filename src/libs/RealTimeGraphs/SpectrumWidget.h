@@ -64,6 +64,12 @@ public:
    /// Show or hide the built-in colour-bar legend.
    void setColorBarVisible(bool visible);
 
+   /// Enable or disable decaying max-hold trace.
+   void setMaxHoldEnabled(bool enabled);
+
+   /// Set the decay rate for max hold (dB per second).  Default is 10 dB/s.
+   void setMaxHoldDecayRate(float dbPerSecond);
+
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
 
@@ -80,6 +86,7 @@ private:
    void drawBackground(QPainter& painter, const QRect& area);
    void drawGrid(QPainter& painter, const QRect& area);
    void drawSpectrum(QPainter& painter, const QRect& area);
+   void drawMaxHold(QPainter& painter, const QRect& area);
    void drawLabels(QPainter& painter, const QRect& area);
 
    /// Convert a frequency in Hz to a human-readable string (Hz/kHz/MHz/GHz).
@@ -96,12 +103,15 @@ private:
 
    std::mutex _mutex;
    std::vector<float> _data;
+   std::vector<float> _maxHoldData;  ///< Per-bin max-hold values (in same units as _data)
 
    ColorMap _colorMap{ColorMap::Palette::Viridis};
    float _minDb{-120.0F};
    float _maxDb{0.0F};
    bool _inputIsDb{false};
    int _gridLines{6};
+   bool _maxHoldEnabled{false};
+   float _maxHoldDecayRate{10.0F};  ///< dB per second
 
    double _centerFreqHz{0.0};
    double _bandwidthHz{0.0};

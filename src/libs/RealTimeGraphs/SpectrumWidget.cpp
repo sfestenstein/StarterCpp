@@ -1,6 +1,7 @@
 #include "RealTimeGraphs/SpectrumWidget.h"
-
 #include "RealTimeGraphs/ColorBarWidget.h"
+
+#include <GeneralLogger.h>
 
 #include <QLinearGradient>
 #include <QPainter>
@@ -40,6 +41,47 @@ void SpectrumWidget::setData(const std::vector<float>& magnitudes)
    {
       std::lock_guard<std::mutex> lock(_mutex);
       _data = magnitudes;
+
+      // Update max-hold envelope
+      if (_maxHoldEnabled)
+      {
+         auto sz = magnitudes.size();
+         if (_maxHoldData.size() != sz)
+         {
+            _maxHoldData = magnitudes;
+         }
+         else
+         {
+            // Decay rate: convert dB/s to a per-frame linear factor.
+            // Assuming ~30 FPS; decay is applied in dB domain.
+            constexpr float FPS_ESTIMATE = 30.0F;
+            constexpr float EPSILON = 1.0e-10F;
+            float decayDb = _maxHoldDecayRate / FPS_ESTIMATE;
+
+            for (std::size_t i = 0; i < sz; ++i)
+            {
+               float inDb = magnitudes[i];
+               float holdDb = _maxHoldData[i];
+               if (!_inputIsDb)
+               {
+                  inDb = 20.0F * std::log10(std::max(magnitudes[i], EPSILON));
+                  holdDb = 20.0F * std::log10(std::max(_maxHoldData[i], EPSILON));
+               }
+               // Decay the hold value, then take the max
+               holdDb -= decayDb;
+               holdDb = std::max(holdDb, inDb);
+
+               if (!_inputIsDb)
+               {
+                  _maxHoldData[i] = std::pow(10.0F, holdDb / 20.0F);
+               }
+               else
+               {
+                  _maxHoldData[i] = holdDb;
+               }
+            }
+         }
+      }
    }
    update(); // schedule repaint on the GUI thread
 }
@@ -103,6 +145,22 @@ void SpectrumWidget::setColorBarVisible(bool visible)
    update();
 }
 
+void SpectrumWidget::setMaxHoldEnabled(bool enabled)
+{
+   _maxHoldEnabled = enabled;
+   if (!enabled)
+   {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _maxHoldData.clear();
+   }
+   update();
+}
+
+void SpectrumWidget::setMaxHoldDecayRate(float dbPerSecond)
+{
+   _maxHoldDecayRate = dbPerSecond;
+}
+
 QRect SpectrumWidget::plotArea() const
 {
    return {MARGIN_LEFT, MARGIN_TOP,
@@ -140,6 +198,7 @@ void SpectrumWidget::paintEvent(QPaintEvent* /*event*/)
    painter.save();
    painter.setClipRect(area);
    drawSpectrum(painter, area);
+   drawMaxHold(painter, area);
    painter.restore();
 
    drawLabels(painter, area);
@@ -254,6 +313,7 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
 
    // Draw per-segment coloured line on top — each segment uses the
    // average normalised value of its two endpoints to pick a colour.
+   GPINFO("Drawing spectrum from bin {} to {}", firstBin, lastBin);
    for (int i = firstBin + 1; i <= lastBin; ++i)
    {
       auto si = static_cast<std::size_t>(i);
@@ -264,6 +324,70 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
                                static_cast<double>(yPts[si - 1])),
                        QPointF(static_cast<double>(xPts[si]),
                                static_cast<double>(yPts[si])));
+   }
+   painter.setRenderHint(QPainter::Antialiasing, false);
+}
+
+void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
+{
+   if (!_maxHoldEnabled)
+   {
+      return;
+   }
+
+   std::vector<float> holdSnapshot;
+   {
+      std::lock_guard<std::mutex> lock(_mutex);
+      holdSnapshot = _maxHoldData;
+   }
+
+   if (holdSnapshot.empty())
+   {
+      return;
+   }
+
+   auto binCount = static_cast<int>(holdSnapshot.size());
+   double viewWidth = _viewXEnd - _viewXStart;
+   if (viewWidth <= 0.0)
+   {
+      viewWidth = 1.0;
+   }
+
+   int firstBin = std::max(0,
+      static_cast<int>(std::floor(_viewXStart * static_cast<double>(binCount))) - 1);
+   int lastBin = std::min(binCount - 1,
+      static_cast<int>(std::ceil(_viewXEnd * static_cast<double>(binCount))));
+
+   if (firstBin >= lastBin)
+   {
+      return;
+   }
+
+   // Compute screen positions for max-hold bins
+   std::vector<QPointF> pts;
+   pts.reserve(static_cast<std::size_t>(lastBin - firstBin + 1));
+
+   for (int i = firstBin; i <= lastBin; ++i)
+   {
+      auto si = static_cast<std::size_t>(i);
+      float norm = toNormalised(holdSnapshot[si]);
+
+      double binFrac = (static_cast<double>(i) + 0.5) / static_cast<double>(binCount);
+      double screenFrac = (binFrac - _viewXStart) / viewWidth;
+
+      double xPos = static_cast<double>(area.left()) +
+                    screenFrac * static_cast<double>(area.width());
+      double yPos = static_cast<double>(area.bottom()) -
+                    static_cast<double>(norm) * static_cast<double>(area.height());
+      pts.emplace_back(xPos, yPos);
+   }
+
+   // Draw white max-hold line
+   painter.setRenderHint(QPainter::Antialiasing, true);
+   painter.setPen(QPen(QColor(255, 255, 255, 200), 1.0));
+   for (std::size_t i = 1; i < pts.size(); ++i)
+   {
+      painter.drawLine(pts[i - 1], pts[i]);
    }
    painter.setRenderHint(QPainter::Antialiasing, false);
 }

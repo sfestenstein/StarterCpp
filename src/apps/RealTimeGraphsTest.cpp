@@ -18,6 +18,7 @@
 
 // Third-party headers
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -42,7 +43,7 @@ namespace
 // Synthetic waveform generators
 // ============================================================================
 
-constexpr int FFT_BINS = 256;
+constexpr int FFT_BINS = 1024;
 constexpr float TWO_PI = 2.0F * std::numbers::pi_v<float>;
 
 /// Generate a fake magnitude spectrum with a tone sweeping across the bins.
@@ -54,7 +55,7 @@ std::vector<float> generateSpectrum(int frame)
    float centre = static_cast<float>(frame % FFT_BINS);
    constexpr float SIGMA = 8.0F;
 
-   for (int i = 0; i < FFT_BINS; ++i)
+   for (size_t i = 0; i < FFT_BINS; ++i)
    {
       float dist = static_cast<float>(i) - centre;
       float peak = std::exp(-0.5F * (dist * dist) / (SIGMA * SIGMA));
@@ -66,9 +67,9 @@ std::vector<float> generateSpectrum(int frame)
 
       // Noise floor
       float noise = 0.005F + 0.003F * (static_cast<float>(std::rand()) /
-                                        static_cast<float>(RAND_MAX));
+                                       static_cast<float>(RAND_MAX));
 
-      mag[static_cast<std::size_t>(i)] = peak + harmonic + noise;
+      mag[i] = peak + harmonic + noise;
    }
    return mag;
 }
@@ -169,6 +170,14 @@ int main(int argc, char* argv[])
       {
          spectrum->setColorMap(p);
       });
+
+   // Add max-hold checkbox to the spectrum page toolbar
+   auto* spectrumToolbar = spectrumPage->layout()->itemAt(0)->layout();
+   auto* maxHoldCheck = new QCheckBox("Max Hold");
+   maxHoldCheck->setStyleSheet("QCheckBox { color: #B4B4BE; }");
+   spectrumToolbar->addWidget(maxHoldCheck);
+   QObject::connect(maxHoldCheck, &QCheckBox::toggled,
+                    spectrum, &RealTimeGraphs::SpectrumWidget::setMaxHoldEnabled);
 
    QWidget* waterfallPage = buildTabPage(waterfall, "Spectrogram",
       [waterfall](RealTimeGraphs::ColorMap::Palette p)
