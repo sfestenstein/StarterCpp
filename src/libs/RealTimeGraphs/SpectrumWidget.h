@@ -5,10 +5,14 @@
 #include "RealTimeGraphs/ColorMap.h"
 
 // Third-party headers
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <QWidget>
 
 // System headers
+#include <cstdint>
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace RealTimeGraphs
@@ -43,22 +47,42 @@ public:
    /// Change the colour palette.
    void setColorMap(ColorMap::Palette palette);
 
+   /// Set the frequency range so the x-axis shows real frequencies.
+   /// @param centerFreqHz  Centre frequency in Hz.
+   /// @param bandwidthHz   Total bandwidth in Hz.
+   void setFrequencyRange(double centerFreqHz, double bandwidthHz);
+
    /// Set number of horizontal grid lines.
    void setGridLines(int count);
+
+   /// Reset the view to show the full data range (both axes).
+   /// This can also be triggered by double-clicking the plot.
+   void resetView();
 
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
 
 protected:
    void paintEvent(QPaintEvent* event) override;
+   void wheelEvent(QWheelEvent* event) override;
+   void mousePressEvent(QMouseEvent* event) override;
+   void mouseMoveEvent(QMouseEvent* event) override;
+   void mouseReleaseEvent(QMouseEvent* event) override;
+   void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
    void drawBackground(QPainter& painter, const QRect& area);
    void drawGrid(QPainter& painter, const QRect& area);
-   void drawBars(QPainter& painter, const QRect& area);
+   void drawSpectrum(QPainter& painter, const QRect& area);
    void drawLabels(QPainter& painter, const QRect& area);
 
-   /// Convert a linear magnitude to normalised [0, 1] within the dB range.
+   /// Convert a frequency in Hz to a human-readable string (Hz/kHz/MHz/GHz).
+   [[nodiscard]] static std::string formatFrequency(double freqHz);
+
+   /// Compute the plot area rectangle from the current widget size.
+   [[nodiscard]] QRect plotArea() const;
+
+   /// Convert a linear magnitude to normalised [0, 1] within the current view range.
    [[nodiscard]] float toNormalised(float value) const;
 
    std::mutex _mutex;
@@ -70,11 +94,32 @@ private:
    bool _inputIsDb{false};
    int _gridLines{6};
 
+   double _centerFreqHz{0.0};
+   double _bandwidthHz{0.0};
+
+   // Current view range (may differ from data range when zoomed/panned)
+   double _viewMinDb{-120.0};
+   double _viewMaxDb{0.0};
+   double _viewXStart{0.0};   ///< visible start as fraction of bin range [0, 1]
+   double _viewXEnd{1.0};     ///< visible end as fraction of bin range [0, 1]
+
+   // Which axes are affected by the current interaction
+   enum class PanAxis { Both, XOnly, YOnly };
+
+   // Pan state tracking
+   bool _panning{false};
+   PanAxis _panAxis{PanAxis::Both};
+   QPoint _panStartPos;
+   double _panStartMinDb{0.0};
+   double _panStartMaxDb{0.0};
+   double _panStartXStart{0.0};
+   double _panStartXEnd{0.0};
+
    // Layout margins
-   static constexpr int MARGIN_LEFT   = 50;
-   static constexpr int MARGIN_RIGHT  = 10;
+   static constexpr int MARGIN_LEFT   = 55;
+   static constexpr int MARGIN_RIGHT  = 15;
    static constexpr int MARGIN_TOP    = 10;
-   static constexpr int MARGIN_BOTTOM = 30;
+   static constexpr int MARGIN_BOTTOM = 40;
 };
 
 } // namespace RealTimeGraphs

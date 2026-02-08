@@ -27,7 +27,6 @@ target_link_libraries(${LIB_NAME}
       Qt6::Core
       Qt6::Gui
       Qt6::Widgets
-      Qt6::OpenGLWidgets
       spdlog::spdlog
       CommonUtils
 )

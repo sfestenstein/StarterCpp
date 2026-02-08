@@ -11,6 +11,7 @@
 
 // Project headers
 #include "CommonUtils/GeneralLogger.h"
+#include "RealTimeGraphs/ColorBarWidget.h"
 #include "RealTimeGraphs/ColorMap.h"
 #include "RealTimeGraphs/ConstellationWidget.h"
 #include "RealTimeGraphs/SpectrumWidget.h"
@@ -119,13 +120,23 @@ int main(int argc, char* argv[])
    auto* waterfall     = new RealTimeGraphs::WaterfallWidget(256);
    auto* constellation = new RealTimeGraphs::ConstellationWidget(8192);
 
+   auto* spectrumBar  = new RealTimeGraphs::ColorBarWidget;
+   auto* waterfallBar = new RealTimeGraphs::ColorBarWidget;
+
    spectrum->setDbRange(-100.0F, 0.0F);
    waterfall->setDbRange(-100.0F, 0.0F);
+   spectrumBar->setDbRange(-100.0F, 0.0F);
+   waterfallBar->setDbRange(-100.0F, 0.0F);
    constellation->setAxisRange(1.5F);
+
+   // Set a representative frequency range: 2.45 GHz centre, 20 MHz bandwidth
+   spectrum->setFrequencyRange(2.45e9, 20.0e6);
+   waterfall->setFrequencyRange(2.45e9, 20.0e6);
 
    // ---- Build per-tab layouts with colour-map selectors ----
 
    auto buildTabPage = [](QWidget* graphWidget,
+                          RealTimeGraphs::ColorBarWidget* colorBar,
                           const QString& label,
                           auto onPaletteChanged) -> QWidget*
    {
@@ -156,15 +167,40 @@ int main(int argc, char* argv[])
       toolbar->addStretch();
 
       layout->addLayout(toolbar);
-      layout->addWidget(graphWidget, 1);
+
+      // Plot + colour bar side by side
+      auto* plotRow = new QHBoxLayout;
+      plotRow->addWidget(graphWidget, 1);
+      plotRow->addWidget(colorBar, 0);
+      layout->addLayout(plotRow, 1);
       return page;
    };
 
-   QWidget* spectrumPage = buildTabPage(spectrum, "Swept-tone FFT",
-      [spectrum](RealTimeGraphs::ColorMap::Palette p) { spectrum->setColorMap(p); });
+   QWidget* spectrumPage = buildTabPage(spectrum, spectrumBar, "Swept-tone FFT",
+      [spectrum, spectrumBar](RealTimeGraphs::ColorMap::Palette p)
+      {
+         spectrum->setColorMap(p);
+         spectrumBar->setColorMap(p);
+      });
 
-   QWidget* waterfallPage = buildTabPage(waterfall, "Spectrogram",
-      [waterfall](RealTimeGraphs::ColorMap::Palette p) { waterfall->setColorMap(p); });
+   QObject::connect(spectrumBar, &RealTimeGraphs::ColorBarWidget::dbRangeChanged,
+                    [spectrum](float minDb, float maxDb)
+                    {
+                       spectrum->setDbRange(minDb, maxDb);
+                    });
+
+   QWidget* waterfallPage = buildTabPage(waterfall, waterfallBar, "Spectrogram",
+      [waterfall, waterfallBar](RealTimeGraphs::ColorMap::Palette p)
+      {
+         waterfall->setColorMap(p);
+         waterfallBar->setColorMap(p);
+      });
+
+   QObject::connect(waterfallBar, &RealTimeGraphs::ColorBarWidget::dbRangeChanged,
+                    [waterfall](float minDb, float maxDb)
+                    {
+                       waterfall->setDbRange(minDb, maxDb);
+                    });
 
    // Constellation doesn't use a colour map, but we keep the layout consistent
    auto* constPage = new QWidget;

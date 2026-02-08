@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace RealTimeGraphs
 {
@@ -64,6 +65,13 @@ void WaterfallWidget::setColorMap(ColorMap::Palette palette)
    update();
 }
 
+void WaterfallWidget::setFrequencyRange(double centerFreqHz, double bandwidthHz)
+{
+   _centerFreqHz = centerFreqHz;
+   _bandwidthHz  = bandwidthHz;
+   update();
+}
+
 QSize WaterfallWidget::minimumSizeHint() const
 {
    return {320, 200};
@@ -113,10 +121,8 @@ void WaterfallWidget::paintEvent(QPaintEvent* /*event*/)
    painter.drawText(0, plotArea.bottom() - 6, MARGIN_LEFT - 5, 12,
                     Qt::AlignRight | Qt::AlignVCenter, "Oldest");
 
-   // X-axis label
-   painter.drawText(plotArea.left(), plotArea.bottom() + 5,
-                    plotArea.width(), MARGIN_BOTTOM - 5,
-                    Qt::AlignCenter, "Frequency Bin");
+   // X-axis: frequency tick labels
+   drawFrequencyLabels(painter, plotArea);
 }
 
 void WaterfallWidget::resizeEvent(QResizeEvent* event)
@@ -176,6 +182,64 @@ float WaterfallWidget::toNormalised(float value) const
 
    float norm = (db - _minDb) / (_maxDb - _minDb);
    return std::clamp(norm, 0.0F, 1.0F);
+}
+
+void WaterfallWidget::drawFrequencyLabels(QPainter& painter, const QRect& area)
+{
+   painter.setPen(QColor(180, 180, 190));
+   QFont font = painter.font();
+   font.setPointSize(8);
+   painter.setFont(font);
+
+   constexpr int X_TICKS = 8;
+   bool hasFreq = (_bandwidthHz > 0.0);
+   double startFreq = _centerFreqHz - _bandwidthHz / 2.0;
+
+   for (int i = 0; i <= X_TICKS; ++i)
+   {
+      float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
+      int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
+
+      QString label;
+      if (hasFreq)
+      {
+         double freq = startFreq + static_cast<double>(frac) * _bandwidthHz;
+         label = QString::fromStdString(formatFrequency(freq));
+      }
+      else
+      {
+         label = QString::number(i);
+      }
+
+      constexpr int LABEL_WIDTH = 80;
+      painter.drawText(xPos - LABEL_WIDTH / 2, area.bottom() + 3,
+                       LABEL_WIDTH, MARGIN_BOTTOM - 5,
+                       Qt::AlignCenter, label);
+   }
+}
+
+std::string WaterfallWidget::formatFrequency(double freqHz)
+{
+   double absFreq = std::abs(freqHz);
+   char buf[32];
+
+   if (absFreq >= 1.0e9)
+   {
+      std::snprintf(buf, sizeof(buf), "%.3f GHz", freqHz / 1.0e9);
+   }
+   else if (absFreq >= 1.0e6)
+   {
+      std::snprintf(buf, sizeof(buf), "%.3f MHz", freqHz / 1.0e6);
+   }
+   else if (absFreq >= 1.0e3)
+   {
+      std::snprintf(buf, sizeof(buf), "%.3f kHz", freqHz / 1.0e3);
+   }
+   else
+   {
+      std::snprintf(buf, sizeof(buf), "%.1f Hz", freqHz);
+   }
+   return std::string(buf);
 }
 
 } // namespace RealTimeGraphs
