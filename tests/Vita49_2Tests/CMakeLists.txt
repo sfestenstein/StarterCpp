@@ -1,4 +1,4 @@
-project(Vita49_2Tests)
+project(UnitTests_Vita49_2)
 
 include(GoogleTest)
 

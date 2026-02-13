@@ -1,4 +1,4 @@
-project(CommonUtilsTests)
+project(UnitTests_CommonUtils)
 
 include(GoogleTest)
 

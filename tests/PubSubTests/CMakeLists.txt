@@ -1,4 +1,4 @@
-project(PubSubTests)
+project(UnitTests_PubSub)
 
 include(GoogleTest)
 
