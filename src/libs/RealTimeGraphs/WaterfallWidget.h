@@ -3,14 +3,18 @@
 
 // Project headers
 #include "CircularBuffer.h"
+#include "PlotCursorOverlay.h"
 #include "RealTimeGraphs/ColorMap.h"
 
 // Third-party headers
+#include <QMouseEvent>
 #include <QImage>
 #include <QWidget>
 
 // System headers
+#include <chrono>
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace RealTimeGraphs
@@ -61,6 +65,10 @@ public:
 protected:
    void paintEvent(QPaintEvent* event) override;
    void resizeEvent(QResizeEvent* event) override;
+   void mousePressEvent(QMouseEvent* event) override;
+   void mouseMoveEvent(QMouseEvent* event) override;
+   void mouseDoubleClickEvent(QMouseEvent* event) override;
+   void leaveEvent(QEvent* event) override;
 
 private:
    /// Rebuild the off-screen image from circular buffer contents.
@@ -69,16 +77,31 @@ private:
    /// Draw frequency tick labels along the x-axis.
    void drawFrequencyLabels(QPainter& painter, const QRect& area) const;
 
+   /// Draw time-age labels along the y-axis.
+   void drawTimeLabels(QPainter& painter, const QRect& area) const;
+
+   /// Format a duration as a human-readable age string.
+   [[nodiscard]] static std::string formatAge(double seconds);
+
    /// Convert a linear magnitude to normalised [0, 1] within the dB range.
    [[nodiscard]] float toNormalised(float value) const;
 
-   std::mutex _mutex;
+   /// Format the X-axis value at a given data fraction.
+   [[nodiscard]] QString formatXValue(double dataFrac) const;
+
+   /// Compute the plot area from the current widget size.
+   [[nodiscard]] QRect plotArea() const;
+
+   mutable std::mutex _mutex;
 
    int _historyRows;
    int _binCount{0};
 
    /// Each element is a spectrum row (vector of normalised values).
    CommonUtils::CircularBuffer<std::vector<float>> _rows;
+
+   /// Timestamp for each row (parallel to _rows).
+   CommonUtils::CircularBuffer<std::chrono::steady_clock::time_point> _timestamps;
 
    /// Off-screen rendered spectrogram image.
    QImage _image;
@@ -99,7 +122,10 @@ private:
    static constexpr int MARGIN_LEFT   = 55;
    static constexpr int MARGIN_RIGHT  = 83;  // COLOR_BAR_WIDTH + 15
    static constexpr int MARGIN_TOP    = 10;
-   static constexpr int MARGIN_BOTTOM = 40;
+   static constexpr int MARGIN_BOTTOM = 25;
+
+   // Cursor overlay
+   PlotCursorOverlay _cursorOverlay;
 };
 
 } // namespace RealTimeGraphs

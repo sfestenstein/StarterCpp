@@ -2,6 +2,7 @@
 #define SPECTRUMWIDGET_H_
 
 // Project headers
+#include "PlotCursorOverlay.h"
 #include "RealTimeGraphs/ColorMap.h"
 
 // Third-party headers
@@ -80,6 +81,7 @@ protected:
    void mouseMoveEvent(QMouseEvent* event) override;
    void mouseReleaseEvent(QMouseEvent* event) override;
    void mouseDoubleClickEvent(QMouseEvent* event) override;
+   void leaveEvent(QEvent* event) override;
 
 private:
    void drawBackground(QPainter& painter, const QRect& area) const;
@@ -90,6 +92,9 @@ private:
 
    /// Compute the plot area rectangle from the current widget size.
    [[nodiscard]] QRect plotArea() const;
+
+   /// Format the X-axis value at a given data fraction.
+   [[nodiscard]] QString formatXValue(double dataFrac) const;
 
    /// Convert a linear magnitude to normalised [0, 1] within the current view range.
    [[nodiscard]] float toNormalised(float value) const;
@@ -138,7 +143,11 @@ private:
    static constexpr int MARGIN_LEFT   = 55;
    static constexpr int MARGIN_RIGHT  = 83;  // COLOR_BAR_WIDTH + 15
    static constexpr int MARGIN_TOP    = 10;
-   static constexpr int MARGIN_BOTTOM = 40;
+   static constexpr int MARGIN_BOTTOM = 25;
+   static constexpr int TICK_LENGTH   = 5;
+
+   // Cursor overlay (crosshair + measurement cursors)
+   PlotCursorOverlay _cursorOverlay;
 };
 
 } // namespace RealTimeGraphs

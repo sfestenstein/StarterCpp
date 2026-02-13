@@ -26,10 +26,68 @@ SpectrumWidget::SpectrumWidget(QWidget* parent)
 {
    setMinimumSize(SpectrumWidget::minimumSizeHint());
    setAttribute(Qt::WA_OpaquePaintEvent);
+   setMouseTracking(true);
 
    _colorBar = new ColorBarStrip(this);
    _colorBar->setDbRange(_minDb, _maxDb);
    _colorBar->setColorMap(_colorMap);
+
+   // Configure cursor overlay callbacks
+   _cursorOverlay.setMargins(MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM);
+
+   _cursorOverlay.setPixelToData(
+      [this](const QPoint& pos, const QRect& area) -> PlotCursorOverlay::DataPoint
+      {
+         const double xFrac = static_cast<double>(pos.x() - area.left())
+                            / static_cast<double>(area.width());
+         const double dataFrac = _viewXStart + (xFrac * (_viewXEnd - _viewXStart));
+         const double yFrac = static_cast<double>(pos.y() - area.top())
+                            / static_cast<double>(area.height());
+         const double db = _viewMaxDb - (yFrac * (_viewMaxDb - _viewMinDb));
+         return {dataFrac, db};
+      });
+
+   _cursorOverlay.setDataToPixel(
+      [this](const PlotCursorOverlay::DataPoint& dp,
+             const QRect& area) -> QPoint
+      {
+         const double xFrac = (dp.x - _viewXStart) / (_viewXEnd - _viewXStart);
+         const int px = area.left() + static_cast<int>(xFrac * area.width());
+         const double yFrac = (_viewMaxDb - dp.y) / (_viewMaxDb - _viewMinDb);
+         const int py = area.top() + static_cast<int>(yFrac * area.height());
+         return {px, py};
+      });
+
+   _cursorOverlay.setFormatX(
+      [this](double xVal) -> QString { return formatXValue(xVal); });
+
+   _cursorOverlay.setFormatY(
+      [](double yVal) -> QString
+      { return QString::number(yVal, 'f', 1) + " dB"; });
+
+   _cursorOverlay.setFormatDeltaX(
+      [this](double x1, double x2) -> QString
+      {
+         if (_bandwidthHz > 0.0)
+         {
+            const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
+            const double freq1 = startFreq + (x1 * _bandwidthHz);
+            const double freq2 = startFreq + (x2 * _bandwidthHz);
+            const double deltaFreq = freq1 - freq2;
+            const QString sign = (deltaFreq < 0.0) ? "-" : "";
+            return QString::fromUtf8("\u0394f: ") + sign
+                 + QString::fromStdString(formatFrequency(std::abs(deltaFreq)));
+         }
+         const double dx = x1 - x2;
+         return QString::fromUtf8("\u0394x: ") + QString::number(dx, 'f', 4);
+      });
+
+   _cursorOverlay.setFormatDeltaY(
+      [](double y1, double y2) -> QString
+      {
+         const double dy = y1 - y2;
+         return QString::fromUtf8("\u0394: ") + QString::number(dy, 'f', 1) + " dB";
+      });
 }
 
 // ============================================================================
@@ -202,6 +260,7 @@ void SpectrumWidget::paintEvent(QPaintEvent* /*event*/)
    painter.restore();
 
    drawLabels(painter, area);
+   _cursorOverlay.draw(painter, area);
 }
 
 // ============================================================================
@@ -395,10 +454,10 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
 {
    painter.setPen(QColor(180, 180, 190));
    QFont font = painter.font();
-   font.setPointSize(8);
+   font.setPointSize(10);
    painter.setFont(font);
 
-   // Y-axis dB labels
+   // Y-axis dB labels + tick marks
    for (int i = 0; i <= _gridLines; ++i)
    {
       const auto frac = static_cast<float>(i) / static_cast<float>(_gridLines);
@@ -406,12 +465,16 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
                 (static_cast<double>(frac) * (_viewMaxDb - _viewMinDb)));
       const int yPos = area.top() + static_cast<int>(frac * static_cast<float>(area.height()));
 
+      // Tick mark on left edge of plot
+      painter.setPen(QColor(180, 180, 190));
+      painter.drawLine(area.left() - TICK_LENGTH, yPos, area.left(), yPos);
+
       const QString label = QString::number(static_cast<int>(db)) + " dB";
-      painter.drawText(0, yPos - 6, MARGIN_LEFT - 5, 12,
+      painter.drawText(0, yPos - 6, MARGIN_LEFT - TICK_LENGTH - 2, 12,
                        Qt::AlignRight | Qt::AlignVCenter, label);
    }
 
-   // X-axis: frequency tick labels
+   // X-axis: frequency tick labels + tick marks
    constexpr int X_TICKS = 8;
    const bool hasFreq = (_bandwidthHz > 0.0);
    const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
@@ -420,6 +483,10 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
    {
       const float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
       const int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
+
+      // Tick mark on bottom edge of plot
+      painter.setPen(QColor(180, 180, 190));
+      painter.drawLine(xPos, area.bottom(), xPos, area.bottom() + TICK_LENGTH);
 
       QString label;
       if (hasFreq)
@@ -438,8 +505,9 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
 
       // Centre the label on the tick position
       constexpr int LABEL_WIDTH = 80;
-      painter.drawText(xPos - (LABEL_WIDTH / 2), area.bottom() + 3,
-                       LABEL_WIDTH, MARGIN_BOTTOM - 5,
+      const int labelTop = area.bottom() + TICK_LENGTH + 3;
+      painter.drawText(xPos - (LABEL_WIDTH / 2), labelTop,
+                       LABEL_WIDTH, MARGIN_BOTTOM - TICK_LENGTH - 6,
                        Qt::AlignCenter, label);
    }
 }
@@ -505,6 +573,16 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
 
 void SpectrumWidget::mousePressEvent(QMouseEvent* event)
 {
+   if (event->button() == Qt::MiddleButton)
+   {
+      if (_cursorOverlay.clearCursors())
+      {
+         update();
+      }
+      event->accept();
+      return;
+   }
+
    if (event->button() == Qt::LeftButton)
    {
       const QRect area = plotArea();
@@ -594,6 +672,12 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
    }
    else
    {
+      // Track cursor for crosshair
+      const QRect area = plotArea();
+      if (_cursorOverlay.handleMouseMove(event->pos(), area))
+      {
+         update();
+      }
       QWidget::mouseMoveEvent(event);
    }
 }
@@ -614,7 +698,25 @@ void SpectrumWidget::mouseReleaseEvent(QMouseEvent* event)
 
 void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
+   const QRect area = plotArea();
+
    if (event->button() == Qt::LeftButton)
+   {
+      if (_cursorOverlay.placeCursor1(event->pos(), area))
+      {
+         update();
+      }
+      event->accept();
+   }
+   else if (event->button() == Qt::RightButton)
+   {
+      if (_cursorOverlay.placeCursor2(event->pos(), area))
+      {
+         update();
+      }
+      event->accept();
+   }
+   else if (event->button() == Qt::MiddleButton)
    {
       resetView();
       event->accept();
@@ -623,6 +725,15 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* event)
    {
       QWidget::mouseDoubleClickEvent(event);
    }
+}
+
+void SpectrumWidget::leaveEvent(QEvent* event)
+{
+   if (_cursorOverlay.handleLeave())
+   {
+      update();
+   }
+   QWidget::leaveEvent(event);
 }
 
 // ============================================================================
@@ -634,6 +745,17 @@ void SpectrumWidget::syncColorBar()
    _colorBar->setDbRange(static_cast<float>(_viewMinDb),
                          static_cast<float>(_viewMaxDb));
    _colorBar->setColorMap(_colorMap);
+}
+
+QString SpectrumWidget::formatXValue(double dataFrac) const
+{
+   if (_bandwidthHz > 0.0)
+   {
+      const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
+      const double freq = startFreq + (dataFrac * _bandwidthHz);
+      return QString::fromStdString(formatFrequency(freq));
+   }
+   return QString::number(dataFrac, 'f', 3);
 }
 
 float SpectrumWidget::toNormalised(float value) const
