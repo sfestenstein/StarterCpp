@@ -185,7 +185,7 @@ add_subdirectory(src/libs/Vita49_2)
 add_subdirectory(src/libs/RealTimeGraphs)
 
 # Applications
-add_subdirectory(src/apps)
+add_subdirectory(src/TestApps)
 
 # Tests
 if(BUILD_TESTS)
