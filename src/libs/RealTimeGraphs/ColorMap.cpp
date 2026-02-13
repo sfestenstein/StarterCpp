@@ -89,9 +89,11 @@ Color ColorMap::lerp(const Color& a, const Color& b, float t)
    auto mix = [t](uint8_t x, uint8_t y) -> uint8_t
    {
       return static_cast<uint8_t>(
-         std::round(static_cast<float>(x) * (1.0F - t) + static_cast<float>(y) * t));
+         std::round((static_cast<float>(x) * (1.0F - t)) +
+                    (static_cast<float>(y) * t)));
    };
-   return {mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b), mix(a.a, b.a)};
+   return Color{.r = mix(a.r, b.r), .g = mix(a.g, b.g), .b = mix(a.b, b.b),
+                .a = mix(a.a, b.a)};
 }
 
 void ColorMap::buildGradient(const std::vector<std::pair<float, Color>>& stops)
@@ -103,7 +105,7 @@ void ColorMap::buildGradient(const std::vector<std::pair<float, Color>>& stops)
 
    for (std::size_t i = 0; i < 256; ++i)
    {
-      float t = static_cast<float>(i) / 255.0F;
+      const float t = static_cast<float>(i) / 255.0F;
 
       // Find surrounding stops
       std::size_t upper = 1;
@@ -111,10 +113,10 @@ void ColorMap::buildGradient(const std::vector<std::pair<float, Color>>& stops)
       {
          ++upper;
       }
-      std::size_t lower = upper - 1;
+      const std::size_t lower = upper - 1;
 
-      float segLen = stops[upper].first - stops[lower].first;
-      float localT = (segLen > 0.0F) ? (t - stops[lower].first) / segLen : 0.0F;
+      const float segLen = stops[upper].first - stops[lower].first;
+      const float localT = (segLen > 0.0F) ? (t - stops[lower].first) / segLen : 0.0F;
       _lut[i] = lerp(stops[lower].second, stops[upper].second, localT);
    }
 }
@@ -142,27 +144,27 @@ void ColorMap::buildViridis()
 void ColorMap::buildInferno()
 {
    buildGradient({
-      {0.00F, {  0,   0,   4, 255}},
-      {0.14F, { 40,  11,  84, 255}},
-      {0.29F, { 101, 21, 110, 255}},
-      {0.43F, { 159, 42, 99,  255}},
-      {0.57F, { 212, 72, 66,  255}},
-      {0.71F, { 245, 125, 21, 255}},
-      {0.86F, { 250, 193, 39, 255}},
-      {1.00F, { 252, 255, 164, 255}},
+      {0.00F, {0,    0,   4,   255}},
+      {0.14F, {40,  11,   84,  255}},
+      {0.29F, {101, 21,   110, 255}},
+      {0.43F, {159, 42,   99,  255}},
+      {0.57F, {212, 72,   66,  255}},
+      {0.71F, {245, 125,  21,  255}},
+      {0.86F, {250, 193,  39,  255}},
+      {1.00F, {252, 255,  164, 255}},
    });
 }
 
 void ColorMap::buildJet()
 {
    buildGradient({
-      {0.00F, {  0,   0, 127, 255}},
-      {0.11F, {  0,   0, 255, 255}},
-      {0.35F, {  0, 255, 255, 255}},
-      {0.50F, {  0, 255,   0, 255}},
-      {0.65F, {255, 255,   0, 255}},
-      {0.89F, {255,   0,   0, 255}},
-      {1.00F, {127,   0,   0, 255}},
+      {0.00F, {0,   0,   127, 255}},
+      {0.11F, {0,   0,   255, 255}},
+      {0.35F, {0,   255, 255, 255}},
+      {0.50F, {0,   255, 0,   255}},
+      {0.65F, {255, 255, 0,   255}},
+      {0.89F, {255, 0,   0,   255}},
+      {1.00F, {127, 0,   0,   255}},
    });
 }
 
@@ -177,21 +179,21 @@ void ColorMap::buildGrayscale()
 void ColorMap::buildTurbo()
 {
    buildGradient({
-      {0.00F, { 48,  18,  59, 255}},
-      {0.07F, { 69,  55, 129, 255}},
-      {0.14F, { 66, 100, 190, 255}},
-      {0.21F, { 35, 141, 227, 255}},
-      {0.29F, {  7, 178, 222, 255}},
-      {0.36F, { 24, 207, 174, 255}},
-      {0.43F, { 78, 226, 120, 255}},
-      {0.50F, {149, 237,  67, 255}},
-      {0.57F, {202, 237,  36, 255}},
-      {0.64F, {241, 213,  19, 255}},
-      {0.71F, {254, 176,  10, 255}},
-      {0.79F, {249, 131,   6, 255}},
-      {0.86F, {225,  85,   5, 255}},
-      {0.93F, {184,  43,   4, 255}},
-      {1.00F, {122,   4,   3, 255}},
+      {0.00F, {48,  18,  59,  255}},
+      {0.07F, {69,  55,  129, 255}},
+      {0.14F, {66,  100, 190, 255}},
+      {0.21F, {35,  141, 227, 255}},
+      {0.29F, {7,   178, 222, 255}},
+      {0.36F, {24,  207, 174, 255}},
+      {0.43F, {78,  226, 120, 255}},
+      {0.50F, {149, 237, 67,  255}},
+      {0.57F, {202, 237, 36,  255}},
+      {0.64F, {241, 213, 19,  255}},
+      {0.71F, {254, 176, 10,  255}},
+      {0.79F, {249, 131, 6,   255}},
+      {0.86F, {225, 85,  5,   255}},
+      {0.93F, {184, 43,  4,   255}},
+      {1.00F, {122, 4,   3,   255}},
    });
 }
 

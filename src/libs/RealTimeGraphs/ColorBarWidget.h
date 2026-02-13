@@ -42,7 +42,7 @@ private:
    static constexpr int V_PADDING   = 2;
 };
 
-/// Standalone vertical colour-bar legend widget with interactive dB controls.
+/// Standalone vertical color-bar legend widget with interactive dB controls.
 ///
 /// Displays a gradient strip mapped through the active `ColorMap` with
 /// dB tick labels and spin boxes to adjust the min/max dB range.
@@ -60,7 +60,7 @@ public:
    /// Set the dB display range (also updates the spin boxes).
    void setDbRange(float minDb, float maxDb);
 
-   /// Change the colour palette.
+   /// Change the color palette.
    void setColorMap(ColorMap::Palette palette);
 
    /// Set number of labelled tick marks on the gradient strip.

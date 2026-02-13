@@ -120,7 +120,7 @@ signal visualization.
 - **SpectrumWidget**: Real-time spectrum (frequency-domain) display
 - **WaterfallWidget**: Waterfall / spectrogram display
 - **ConstellationWidget**: IQ constellation diagram
-- **ColorMap**: Configurable colour-map utilities used by the widgets
+- **ColorMap**: Configurable color-map utilities used by the widgets
 
 Dependencies: Qt6::Core, Qt6::Gui, Qt6::Widgets, Qt6::OpenGLWidgets, spdlog,
 CommonUtils.

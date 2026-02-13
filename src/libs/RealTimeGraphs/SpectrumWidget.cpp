@@ -1,5 +1,6 @@
 #include "RealTimeGraphs/SpectrumWidget.h"
 #include "RealTimeGraphs/ColorBarWidget.h"
+#include "RealTimeGraphs/CommonGuiUtils.h"
 
 #include <GeneralLogger.h>
 
@@ -11,8 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
-#include <sstream>
+#include <cstddef>
 
 namespace RealTimeGraphs
 {
@@ -24,7 +24,7 @@ namespace RealTimeGraphs
 SpectrumWidget::SpectrumWidget(QWidget* parent)
    : QWidget(parent)
 {
-   setMinimumSize(minimumSizeHint());
+   setMinimumSize(SpectrumWidget::minimumSizeHint());
    setAttribute(Qt::WA_OpaquePaintEvent);
 
    _colorBar = new ColorBarStrip(this);
@@ -39,7 +39,7 @@ SpectrumWidget::SpectrumWidget(QWidget* parent)
 void SpectrumWidget::setData(const std::vector<float>& magnitudes)
 {
    {
-      std::lock_guard<std::mutex> lock(_mutex);
+      const std::lock_guard<std::mutex> lock(_mutex);
       _data = magnitudes;
 
       // Update max-hold envelope
@@ -56,7 +56,7 @@ void SpectrumWidget::setData(const std::vector<float>& magnitudes)
             // Assuming ~30 FPS; decay is applied in dB domain.
             constexpr float FPS_ESTIMATE = 30.0F;
             constexpr float EPSILON = 1.0e-10F;
-            float decayDb = _maxHoldDecayRate / FPS_ESTIMATE;
+            const float decayDb = _maxHoldDecayRate / FPS_ESTIMATE;
 
             for (std::size_t i = 0; i < sz; ++i)
             {
@@ -150,7 +150,7 @@ void SpectrumWidget::setMaxHoldEnabled(bool enabled)
    _maxHoldEnabled = enabled;
    if (!enabled)
    {
-      std::lock_guard<std::mutex> lock(_mutex);
+      const std::lock_guard<std::mutex> lock(_mutex);
       _maxHoldData.clear();
    }
    update();
@@ -175,7 +175,7 @@ QRect SpectrumWidget::plotArea() const
 void SpectrumWidget::resizeEvent(QResizeEvent* event)
 {
    QWidget::resizeEvent(event);
-   QRect area = plotArea();
+   const QRect area = plotArea();
    _colorBar->setGeometry(
       area.right() + 5,
       area.top(),
@@ -188,7 +188,7 @@ void SpectrumWidget::paintEvent(QPaintEvent* /*event*/)
    QPainter painter(this);
    painter.setRenderHint(QPainter::Antialiasing, false);
 
-   QRect area = plotArea();
+   const QRect area = plotArea();
 
    drawBackground(painter, area);
    drawGrid(painter, area);
@@ -208,21 +208,21 @@ void SpectrumWidget::paintEvent(QPaintEvent* /*event*/)
 // Drawing helpers
 // ============================================================================
 
-void SpectrumWidget::drawBackground(QPainter& painter, const QRect& area)
+void SpectrumWidget::drawBackground(QPainter& painter, const QRect& area) const 
 {
    painter.fillRect(rect(), QColor(25, 25, 30));
    painter.fillRect(area, QColor(15, 15, 20));
 }
 
-void SpectrumWidget::drawGrid(QPainter& painter, const QRect& area)
+void SpectrumWidget::drawGrid(QPainter& painter, const QRect& area) const 
 {
    painter.setPen(QPen(QColor(60, 60, 70), 1, Qt::DotLine));
 
    // Horizontal grid lines (amplitude)
    for (int i = 0; i <= _gridLines; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(_gridLines);
-      int yPos = area.top() + static_cast<int>(frac * static_cast<float>(area.height()));
+      const float frac = static_cast<float>(i) / static_cast<float>(_gridLines);
+      const int yPos = area.top() + static_cast<int>(frac * static_cast<float>(area.height()));
       painter.drawLine(area.left(), yPos, area.right(), yPos);
    }
 
@@ -230,17 +230,17 @@ void SpectrumWidget::drawGrid(QPainter& painter, const QRect& area)
    constexpr int V_LINES = 8;
    for (int i = 0; i <= V_LINES; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(V_LINES);
-      int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
+      const float frac = static_cast<float>(i) / static_cast<float>(V_LINES);
+      const int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
       painter.drawLine(xPos, area.top(), xPos, area.bottom());
    }
 }
 
-void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
+void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area) const 
 {
    std::vector<float> snapshot;
    {
-      std::lock_guard<std::mutex> lock(_mutex);
+      const std::lock_guard<std::mutex> lock(_mutex);
       snapshot = _data;
    }
 
@@ -257,9 +257,9 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
    }
 
    // Determine visible bin range (with 1-bin margin for line continuity)
-   int firstBin = std::max(0,
+   const int firstBin = std::max(0,
       static_cast<int>(std::floor(_viewXStart * static_cast<double>(binCount))) - 1);
-   int lastBin = std::min(binCount - 1,
+   const int lastBin = std::min(binCount - 1,
       static_cast<int>(std::ceil(_viewXEnd * static_cast<double>(binCount))));
 
    // Pre-compute normalised values and positions for visible bins
@@ -270,16 +270,16 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
    for (int i = firstBin; i <= lastBin; ++i)
    {
       auto si = static_cast<std::size_t>(i);
-      float norm = toNormalised(snapshot[si]);
+      const float norm = toNormalised(snapshot[si]);
       norms[si] = norm;
 
-      double binFrac = (static_cast<double>(i) + 0.5) / static_cast<double>(binCount);
-      double screenFrac = (binFrac - _viewXStart) / viewWidth;
+      const double binFrac = (static_cast<double>(i) + 0.5) / static_cast<double>(binCount);
+      const double screenFrac = (binFrac - _viewXStart) / viewWidth;
 
       xPts[si] = static_cast<float>(area.left()) +
-                 static_cast<float>(screenFrac) * static_cast<float>(area.width());
+                 (static_cast<float>(screenFrac) * static_cast<float>(area.width()));
       yPts[si] = static_cast<float>(area.bottom()) -
-                 norm * static_cast<float>(area.height());
+                 (norm * static_cast<float>(area.height()));
    }
 
    // Build the fill path
@@ -295,15 +295,15 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
                    static_cast<double>(area.bottom()));
    fillPath.closeSubpath();
 
-   // Draw gradient fill under the curve matching the colour bar
+   // Draw gradient fill under the curve matching the color bar
    QLinearGradient gradient(0, area.top(), 0, area.bottom());
    constexpr int GRADIENT_STOPS = 16;
    for (int s = 0; s <= GRADIENT_STOPS; ++s)
    {
-      float frac = static_cast<float>(s) / static_cast<float>(GRADIENT_STOPS);
+      const float frac = static_cast<float>(s) / static_cast<float>(GRADIENT_STOPS);
       // frac 0 = top of plot = high value, frac 1 = bottom = low value
-      float norm = 1.0F - frac;
-      Color c = _colorMap.map(norm);
+      const float norm = 1.0F - frac;
+      const Color c = _colorMap.map(norm);
       gradient.setColorAt(static_cast<double>(frac),
                           QColor(c.r, c.g, c.b, 70));
    }
@@ -311,14 +311,13 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
    painter.setRenderHint(QPainter::Antialiasing, true);
    painter.fillPath(fillPath, gradient);
 
-   // Draw per-segment coloured line on top — each segment uses the
-   // average normalised value of its two endpoints to pick a colour.
-   GPINFO("Drawing spectrum from bin {} to {}", firstBin, lastBin);
+   // Draw per-segment colored line on top — each segment uses the
+   // average normalised value of its two endpoints to pick a color.
    for (int i = firstBin + 1; i <= lastBin; ++i)
    {
       auto si = static_cast<std::size_t>(i);
-      float avgNorm = (norms[si - 1] + norms[si]) * 0.5F;
-      Color c = _colorMap.map(avgNorm);
+      const float avgNorm = (norms[si - 1] + norms[si]) * 0.5F;
+      const Color c = _colorMap.map(avgNorm);
       painter.setPen(QPen(QColor(c.r, c.g, c.b, 220), 1.5));
       painter.drawLine(QPointF(static_cast<double>(xPts[si - 1]),
                                static_cast<double>(yPts[si - 1])),
@@ -328,7 +327,7 @@ void SpectrumWidget::drawSpectrum(QPainter& painter, const QRect& area)
    painter.setRenderHint(QPainter::Antialiasing, false);
 }
 
-void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
+void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area) const 
 {
    if (!_maxHoldEnabled)
    {
@@ -337,7 +336,7 @@ void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
 
    std::vector<float> holdSnapshot;
    {
-      std::lock_guard<std::mutex> lock(_mutex);
+      const std::lock_guard<std::mutex> lock(_mutex);
       holdSnapshot = _maxHoldData;
    }
 
@@ -346,17 +345,17 @@ void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
       return;
    }
 
-   auto binCount = static_cast<int>(holdSnapshot.size());
+   const size_t binCount = holdSnapshot.size();
    double viewWidth = _viewXEnd - _viewXStart;
    if (viewWidth <= 0.0)
    {
       viewWidth = 1.0;
    }
 
-   int firstBin = std::max(0,
-      static_cast<int>(std::floor(_viewXStart * static_cast<double>(binCount))) - 1);
-   int lastBin = std::min(binCount - 1,
-      static_cast<int>(std::ceil(_viewXEnd * static_cast<double>(binCount))));
+   const size_t firstBin = std::max(0UL,
+      static_cast<size_t>(std::floor(_viewXStart * static_cast<double>(binCount)) - 1));
+   const size_t lastBin = std::min(binCount - 1,
+      static_cast<size_t>(std::ceil(_viewXEnd * static_cast<double>(binCount))));
 
    if (firstBin >= lastBin)
    {
@@ -367,18 +366,18 @@ void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
    std::vector<QPointF> pts;
    pts.reserve(static_cast<std::size_t>(lastBin - firstBin + 1));
 
-   for (int i = firstBin; i <= lastBin; ++i)
+   for (size_t i = firstBin; i <= lastBin; ++i)
    {
       auto si = static_cast<std::size_t>(i);
-      float norm = toNormalised(holdSnapshot[si]);
+      const float norm = toNormalised(holdSnapshot[si]);
 
-      double binFrac = (static_cast<double>(i) + 0.5) / static_cast<double>(binCount);
-      double screenFrac = (binFrac - _viewXStart) / viewWidth;
+      const double binFrac = (static_cast<double>(i) + 0.5) / static_cast<double>(binCount);
+      const double screenFrac = (binFrac - _viewXStart) / viewWidth;
 
-      double xPos = static_cast<double>(area.left()) +
-                    screenFrac * static_cast<double>(area.width());
-      double yPos = static_cast<double>(area.bottom()) -
-                    static_cast<double>(norm) * static_cast<double>(area.height());
+      const double xPos = static_cast<double>(area.left()) +
+                          (screenFrac * static_cast<double>(area.width()));
+      const double yPos = static_cast<double>(area.bottom()) -
+                          (static_cast<double>(norm) * static_cast<double>(area.height()));
       pts.emplace_back(xPos, yPos);
    }
 
@@ -392,7 +391,7 @@ void SpectrumWidget::drawMaxHold(QPainter& painter, const QRect& area)
    painter.setRenderHint(QPainter::Antialiasing, false);
 }
 
-void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area)
+void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
 {
    painter.setPen(QColor(180, 180, 190));
    QFont font = painter.font();
@@ -402,44 +401,44 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area)
    // Y-axis dB labels
    for (int i = 0; i <= _gridLines; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(_gridLines);
-      float db = static_cast<float>(_viewMaxDb -
-                    static_cast<double>(frac) * (_viewMaxDb - _viewMinDb));
-      int yPos = area.top() + static_cast<int>(frac * static_cast<float>(area.height()));
+      const auto frac = static_cast<float>(i) / static_cast<float>(_gridLines);
+      const auto db = static_cast<float>(_viewMaxDb -
+                (static_cast<double>(frac) * (_viewMaxDb - _viewMinDb)));
+      const int yPos = area.top() + static_cast<int>(frac * static_cast<float>(area.height()));
 
-      QString label = QString::number(static_cast<int>(db)) + " dB";
+      const QString label = QString::number(static_cast<int>(db)) + " dB";
       painter.drawText(0, yPos - 6, MARGIN_LEFT - 5, 12,
                        Qt::AlignRight | Qt::AlignVCenter, label);
    }
 
    // X-axis: frequency tick labels
    constexpr int X_TICKS = 8;
-   bool hasFreq = (_bandwidthHz > 0.0);
-   double startFreq = _centerFreqHz - _bandwidthHz / 2.0;
+   const bool hasFreq = (_bandwidthHz > 0.0);
+   const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
 
    for (int i = 0; i <= X_TICKS; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
-      int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
+      const float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
+      const int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
 
       QString label;
       if (hasFreq)
       {
-         double dataFrac = _viewXStart +
-                           static_cast<double>(frac) * (_viewXEnd - _viewXStart);
-         double freq = startFreq + dataFrac * _bandwidthHz;
+         const double dataFrac = _viewXStart +
+                           (static_cast<double>(frac) * (_viewXEnd - _viewXStart));
+         const double freq = startFreq + (dataFrac * _bandwidthHz);
          label = QString::fromStdString(formatFrequency(freq));
       }
       else
       {
-         double dataFrac = _viewXStart +
-                           static_cast<double>(frac) * (_viewXEnd - _viewXStart);
+         const double dataFrac = _viewXStart +
+                           (static_cast<double>(frac) * (_viewXEnd - _viewXStart));
          label = QString::number(dataFrac, 'f', 2);
       }
 
       // Centre the label on the tick position
       constexpr int LABEL_WIDTH = 80;
-      painter.drawText(xPos - LABEL_WIDTH / 2, area.bottom() + 3,
+      painter.drawText(xPos - (LABEL_WIDTH / 2), area.bottom() + 3,
                        LABEL_WIDTH, MARGIN_BOTTOM - 5,
                        Qt::AlignCenter, label);
    }
@@ -451,17 +450,17 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area)
 
 void SpectrumWidget::wheelEvent(QWheelEvent* event)
 {
-   QRect area = plotArea();
-   QPointF pos = event->position();
+   const QRect area = plotArea();
+   const QPointF pos = event->position();
 
    // Determine which axis region the cursor is in:
    //   Y-axis margin (left of plot), X-axis margin (below plot), or plot area.
-   //   The colour-bar area (right of plot) also counts as Y-axis.
-   bool inPlot   = area.contains(pos.toPoint());
-   bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
-                     pos.y() >= area.top() && pos.y() <= area.bottom());
-   bool inXMargin = (pos.y() > area.bottom() &&
-                     pos.x() >= area.left() && pos.x() <= area.right());
+   //   The color-bar area (right of plot) also counts as Y-axis.
+   const bool inPlot   = area.contains(pos.toPoint());
+   const bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
+                            pos.y() >= area.top() && pos.y() <= area.bottom());
+   const bool inXMargin = (pos.y() > area.bottom() &&
+                           pos.x() >= area.left() && pos.x() <= area.right());
 
    if (!inPlot && !inYMargin && !inXMargin)
    {
@@ -470,21 +469,21 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
    }
 
    constexpr double ZOOM_FACTOR = 1.15;
-   double factor = (event->angleDelta().y() > 0)
-                      ? (1.0 / ZOOM_FACTOR)
-                      : ZOOM_FACTOR;
+   const double factor = (event->angleDelta().y() > 0)
+                           ? (1.0 / ZOOM_FACTOR)
+                           : ZOOM_FACTOR;
 
-   bool zoomY = inPlot || inYMargin;
-   bool zoomX = inPlot || inXMargin;
+   const bool zoomY = inPlot || inYMargin;
+   const bool zoomX = inPlot || inXMargin;
 
    if (zoomY)
    {
       // Y-axis zoom centred on the dB value under the mouse
       double yFrac = (pos.y() - area.top()) / area.height();
       yFrac = std::clamp(yFrac, 0.0, 1.0);
-      double dbAtMouse = _viewMaxDb - yFrac * (_viewMaxDb - _viewMinDb);
-      _viewMinDb = dbAtMouse - (dbAtMouse - _viewMinDb) * factor;
-      _viewMaxDb = dbAtMouse + (_viewMaxDb - dbAtMouse) * factor;
+      const double dbAtMouse = _viewMaxDb - (yFrac * (_viewMaxDb - _viewMinDb));
+      _viewMinDb = dbAtMouse - ((dbAtMouse - _viewMinDb) * factor);
+      _viewMaxDb = dbAtMouse + ((_viewMaxDb - dbAtMouse) * factor);
    }
 
    if (zoomX)
@@ -492,9 +491,9 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
       // X-axis zoom centred on the data fraction under the mouse
       double xFrac = (pos.x() - area.left()) / area.width();
       xFrac = std::clamp(xFrac, 0.0, 1.0);
-      double dataFracAtMouse = _viewXStart + xFrac * (_viewXEnd - _viewXStart);
-      double newXStart = dataFracAtMouse - (dataFracAtMouse - _viewXStart) * factor;
-      double newXEnd   = dataFracAtMouse + (_viewXEnd - dataFracAtMouse) * factor;
+      const double dataFracAtMouse = _viewXStart + (xFrac * (_viewXEnd - _viewXStart));
+      const double newXStart = dataFracAtMouse - ((dataFracAtMouse - _viewXStart) * factor);
+      const double newXEnd   = dataFracAtMouse + ((_viewXEnd - dataFracAtMouse) * factor);
       _viewXStart = std::max(0.0, newXStart);
       _viewXEnd   = std::min(1.0, newXEnd);
    }
@@ -508,14 +507,14 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* event)
 {
    if (event->button() == Qt::LeftButton)
    {
-      QRect area = plotArea();
-      QPoint pos = event->pos();
+      const QRect area = plotArea();
+      const QPoint pos = event->pos();
 
-      bool inPlot   = area.contains(pos);
-      bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
-                        pos.y() >= area.top() && pos.y() <= area.bottom());
-      bool inXMargin = (pos.y() > area.bottom() &&
-                        pos.x() >= area.left() && pos.x() <= area.right());
+      const bool inPlot   = area.contains(pos);
+      const bool inYMargin = ((pos.x() < area.left() || pos.x() > area.right()) &&
+                               pos.y() >= area.top() && pos.y() <= area.bottom());
+      const bool inXMargin = (pos.y() > area.bottom() &&
+                              pos.x() >= area.left() && pos.x() <= area.right());
 
       if (inPlot || inYMargin || inXMargin)
       {
@@ -551,18 +550,18 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
 {
    if (_panning)
    {
-      QRect area = plotArea();
-      double dxPixels = event->pos().x() - _panStartPos.x();
-      double dyPixels = event->pos().y() - _panStartPos.y();
+      const QRect area = plotArea();
+      const double dxPixels = event->pos().x() - _panStartPos.x();
+      const double dyPixels = event->pos().y() - _panStartPos.y();
 
-      bool panX = (_panAxis == PanAxis::Both || _panAxis == PanAxis::XOnly);
-      bool panY = (_panAxis == PanAxis::Both || _panAxis == PanAxis::YOnly);
+      const bool panX = (_panAxis == PanAxis::Both || _panAxis == PanAxis::XOnly);
+      const bool panY = (_panAxis == PanAxis::Both || _panAxis == PanAxis::YOnly);
 
       if (panX)
       {
          // X pan: drag right -> content moves right -> view shifts left
-         double xRange = _panStartXEnd - _panStartXStart;
-         double dxData = -dxPixels / area.width() * xRange;
+         const double xRange = _panStartXEnd - _panStartXStart;
+         const double dxData = -dxPixels / area.width() * xRange;
          double newXStart = _panStartXStart + dxData;
          double newXEnd   = _panStartXEnd   + dxData;
 
@@ -583,8 +582,8 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
       if (panY)
       {
          // Y pan: drag down -> content moves down -> view shifts up in dB
-         double dbRange = _panStartMaxDb - _panStartMinDb;
-         double dyDb    = dyPixels / area.height() * dbRange;
+         const double dbRange = _panStartMaxDb - _panStartMinDb;
+         const double dyDb    = dyPixels / area.height() * dbRange;
          _viewMinDb = _panStartMinDb + dyDb;
          _viewMaxDb = _panStartMaxDb + dyDb;
       }
@@ -650,32 +649,8 @@ float SpectrumWidget::toNormalised(float value) const
    // Map dB range to [0, 1] using the current view range
    auto viewMin = static_cast<float>(_viewMinDb);
    auto viewMax = static_cast<float>(_viewMaxDb);
-   float norm = (db - viewMin) / (viewMax - viewMin);
+   const float norm = (db - viewMin) / (viewMax - viewMin);
    return std::clamp(norm, 0.0F, 1.0F);
-}
-
-std::string SpectrumWidget::formatFrequency(double freqHz)
-{
-   double absFreq = std::abs(freqHz);
-   char buf[32];
-
-   if (absFreq >= 1.0e9)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f GHz", freqHz / 1.0e9);
-   }
-   else if (absFreq >= 1.0e6)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f MHz", freqHz / 1.0e6);
-   }
-   else if (absFreq >= 1.0e3)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f kHz", freqHz / 1.0e3);
-   }
-   else
-   {
-      std::snprintf(buf, sizeof(buf), "%.1f Hz", freqHz);
-   }
-   return std::string(buf);
 }
 
 } // namespace RealTimeGraphs

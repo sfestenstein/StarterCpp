@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <numbers>
 #include <random>
 #include <string>
 #include <vector>
@@ -23,7 +24,7 @@
 namespace
 {
 
-constexpr double PI = 3.14159265358979323846;
+constexpr double PI = std::numbers::pi;
 
 // ============================================================================
 // Waveform generators
@@ -35,7 +36,7 @@ Vita49_2::IQSamples generateTone(size_t count, double freqHz, double sampleRateH
    Vita49_2::IQSamples samples(count);
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
+      const double t = static_cast<double>(i) / sampleRateHz;
       auto phase = static_cast<float>(2.0 * PI * freqHz * t);
       samples[i] = {std::cos(phase), std::sin(phase)};
    }
@@ -47,12 +48,12 @@ Vita49_2::IQSamples generateChirp(size_t count, double f0, double f1,
                                    double sampleRateHz)
 {
    Vita49_2::IQSamples samples(count);
-   double duration = static_cast<double>(count) / sampleRateHz;
-   double rate = (f1 - f0) / duration;
+   const double duration = static_cast<double>(count) / sampleRateHz;
+   const double rate = (f1 - f0) / duration;
 
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
+      const double t = static_cast<double>(i) / sampleRateHz;
       auto phase = static_cast<float>(2.0 * PI * (f0 * t + 0.5 * rate * t * t));
       samples[i] = {std::cos(phase), std::sin(phase)};
    }
@@ -80,7 +81,7 @@ Vita49_2::IQSamples generateScaledTone(size_t count, double freqHz,
    Vita49_2::IQSamples samples(count);
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
+      const double t = static_cast<double>(i) / sampleRateHz;
       auto phase = static_cast<float>(2.0 * PI * freqHz * t);
       samples[i] = {amplitude * std::cos(phase), amplitude * std::sin(phase)};
    }
@@ -118,16 +119,16 @@ ErrorMetrics computeMetrics(const Vita49_2::IQSamples& original,
 
    for (size_t i = 0; i < metrics.sampleCount; ++i)
    {
-      float errI = original[i].real() - decoded[i].real();
-      float errQ = original[i].imag() - decoded[i].imag();
+      const float errI = original[i].real() - decoded[i].real();
+      const float errQ = original[i].imag() - decoded[i].imag();
 
-      float absErrI = std::fabs(errI);
-      float absErrQ = std::fabs(errQ);
-      maxErr = std::max(maxErr, std::max(absErrI, absErrQ));
+      const float absErrI = std::fabs(errI);
+      const float absErrQ = std::fabs(errQ);
+      maxErr = std::max({maxErr, absErrI, absErrQ});
 
-      sumSqError  += static_cast<double>(errI * errI + errQ * errQ);
-      sumSqSignal += static_cast<double>(original[i].real() * original[i].real() +
-                                          original[i].imag() * original[i].imag());
+      sumSqError  += static_cast<double>((errI * errI) + (errQ * errQ));
+      sumSqSignal += static_cast<double>((original[i].real() * original[i].real()) +
+                                         (original[i].imag() * original[i].imag()));
    }
 
    const double n = static_cast<double>(metrics.sampleCount) * 2.0;   // I+Q values
@@ -207,7 +208,7 @@ bool runRoundTrip(const std::string& name,
 // main
 // ============================================================================
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) // NOLINT
 {
    CommonUtils::GeneralLogger logger;
    logger.init("Vita49RoundTripTest");
@@ -215,7 +216,7 @@ int main(int argc, char* argv[])
    size_t numSamples = 10000;
    float scaleFactor = Vita49_2::DEFAULT_SCALE_FACTOR;
 
-   if (argc > 1) { numSamples = static_cast<size_t>(std::atol(argv[1])); }
+   if (argc > 1) { numSamples = static_cast<size_t>(std::stol(argv[1])); }
    if (argc > 2) { scaleFactor = std::stof(argv[2]); }
 
    GPINFO("==========================================================");

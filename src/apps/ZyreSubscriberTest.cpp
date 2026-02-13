@@ -12,7 +12,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
-int main(int argc, char* argv[]) 
+int main(int argc, char* argv[]) // NOLINT
 {
     // Initialize logger
     CommonUtils::GeneralLogger logger;

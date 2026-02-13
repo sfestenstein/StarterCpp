@@ -11,7 +11,7 @@
 namespace RealTimeGraphs
 {
 
-/// A packed RGBA colour.
+/// A packed RGBA color.
 struct Color
 {
    uint8_t r{0};
@@ -20,15 +20,15 @@ struct Color
    uint8_t a{255};
 };
 
-/// Pre-built colour maps for spectrum and waterfall displays.
+/// Pre-built color maps for spectrum and waterfall displays.
 ///
 /// Each map is a 256-entry lookup table (LUT).  Call `map(t)` with a
-/// normalised value in [0, 1] to retrieve the corresponding colour.
+/// normalised value in [0, 1] to retrieve the corresponding color.
 class ColorMap
 {
 public:
    /// Built-in palette names.
-   enum class Palette
+   enum class Palette : std::uint8_t
    {
       Viridis,     ///< Perceptually uniform, blue-green-yellow
       Inferno,     ///< Perceptually uniform, black-red-yellow-white
@@ -40,7 +40,7 @@ public:
    /// Build a LUT for the requested palette.
    explicit ColorMap(Palette palette = Palette::Viridis);
 
-   /// Look up a colour for a normalised value in [0, 1].
+   /// Look up a color for a normalised value in [0, 1].
    /// Values outside the range are clamped.
    [[nodiscard]] Color map(float t) const;
 
@@ -66,10 +66,10 @@ private:
    void buildGrayscale();
    void buildTurbo();
 
-   /// Linearly interpolate between two colours.
+   /// Linearly interpolate between two colors.
    [[nodiscard]] static Color lerp(const Color& a, const Color& b, float t);
 
-   /// Build a gradient LUT from a list of key-colour stops.
+   /// Build a gradient LUT from a list of key-color stops.
    void buildGradient(const std::vector<std::pair<float, Color>>& stops);
 
    std::array<Color, 256> _lut{};

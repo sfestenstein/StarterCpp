@@ -12,7 +12,6 @@
 // System headers
 #include <cstdint>
 #include <mutex>
-#include <string>
 #include <vector>
 
 namespace RealTimeGraphs
@@ -23,7 +22,7 @@ class ColorBarStrip; // forward declaration
 /// Custom QPainter-based spectrum / FFT bar-chart widget.
 ///
 /// Renders a horizontal frequency axis and a vertical amplitude axis.
-/// Each bin is drawn as a filled vertical bar whose colour comes from
+/// Each bin is drawn as a filled vertical bar whose color comes from
 /// the active ColorMap.
 ///
 /// Call `setData()` from any thread; the widget double-buffers the data
@@ -46,7 +45,7 @@ public:
    /// Set whether data is already in dB (true) or linear (false).
    void setInputIsDb(bool isDb);
 
-   /// Change the colour palette.
+   /// Change the color palette.
    void setColorMap(ColorMap::Palette palette);
 
    /// Set the frequency range so the x-axis shows real frequencies.
@@ -61,7 +60,7 @@ public:
    /// This can also be triggered by double-clicking the plot.
    void resetView();
 
-   /// Show or hide the built-in colour-bar legend.
+   /// Show or hide the built-in color-bar legend.
    void setColorBarVisible(bool visible);
 
    /// Enable or disable decaying max-hold trace.
@@ -83,14 +82,11 @@ protected:
    void mouseDoubleClickEvent(QMouseEvent* event) override;
 
 private:
-   void drawBackground(QPainter& painter, const QRect& area);
-   void drawGrid(QPainter& painter, const QRect& area);
-   void drawSpectrum(QPainter& painter, const QRect& area);
-   void drawMaxHold(QPainter& painter, const QRect& area);
-   void drawLabels(QPainter& painter, const QRect& area);
-
-   /// Convert a frequency in Hz to a human-readable string (Hz/kHz/MHz/GHz).
-   [[nodiscard]] static std::string formatFrequency(double freqHz);
+   void drawBackground(QPainter& painter, const QRect& area) const;
+   void drawGrid(QPainter& painter, const QRect& area) const;
+   void drawSpectrum(QPainter& painter, const QRect& area) const;
+   void drawMaxHold(QPainter& painter, const QRect& area) const;
+   void drawLabels(QPainter& painter, const QRect& area) const;
 
    /// Compute the plot area rectangle from the current widget size.
    [[nodiscard]] QRect plotArea() const;
@@ -98,10 +94,10 @@ private:
    /// Convert a linear magnitude to normalised [0, 1] within the current view range.
    [[nodiscard]] float toNormalised(float value) const;
 
-   /// Sync the colour-bar strip with the current view range and palette.
+   /// Sync the color-bar strip with the current view range and palette.
    void syncColorBar();
 
-   std::mutex _mutex;
+   mutable std::mutex _mutex;
    std::vector<float> _data;
    std::vector<float> _maxHoldData;  ///< Per-bin max-hold values (in same units as _data)
 
@@ -123,7 +119,7 @@ private:
    double _viewXEnd{1.0};     ///< visible end as fraction of bin range [0, 1]
 
    // Which axes are affected by the current interaction
-   enum class PanAxis { Both, XOnly, YOnly };
+   enum class PanAxis : std::uint8_t { Both, XOnly, YOnly };
 
    // Pan state tracking
    bool _panning{false};
@@ -134,7 +130,7 @@ private:
    double _panStartXStart{0.0};
    double _panStartXEnd{0.0};
 
-   // Embedded colour bar
+   // Embedded color bar
    ColorBarStrip* _colorBar{nullptr};
    static constexpr int COLOR_BAR_WIDTH = 68;
 

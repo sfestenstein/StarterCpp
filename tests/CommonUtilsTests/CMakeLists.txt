@@ -17,6 +17,9 @@ target_link_libraries(${PROJECT_NAME}
       GTest::gmock
 )
 
+# Suppress -Wunused-result in test code
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-result)
+
 # Discover tests for CTest
 gtest_discover_tests(${PROJECT_NAME} 
    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin

@@ -11,7 +11,6 @@
 
 // System headers
 #include <mutex>
-#include <string>
 #include <vector>
 
 namespace RealTimeGraphs
@@ -45,7 +44,7 @@ public:
    /// Set whether data is already in dB (true) or linear (false).
    void setInputIsDb(bool isDb);
 
-   /// Change the colour palette.
+   /// Change the color palette.
    void setColorMap(ColorMap::Palette palette);
 
    /// Set the frequency range so the x-axis shows real frequencies.
@@ -53,7 +52,7 @@ public:
    /// @param bandwidthHz   Total bandwidth in Hz.
    void setFrequencyRange(double centerFreqHz, double bandwidthHz);
 
-   /// Show or hide the built-in colour-bar legend.
+   /// Show or hide the built-in color-bar legend.
    void setColorBarVisible(bool visible);
 
    /// Minimum size hint for layout.
@@ -68,10 +67,7 @@ private:
    void rebuildImage();
 
    /// Draw frequency tick labels along the x-axis.
-   void drawFrequencyLabels(QPainter& painter, const QRect& area);
-
-   /// Convert a frequency in Hz to a human-readable string (Hz/kHz/MHz/GHz).
-   [[nodiscard]] static std::string formatFrequency(double freqHz);
+   void drawFrequencyLabels(QPainter& painter, const QRect& area) const;
 
    /// Convert a linear magnitude to normalised [0, 1] within the dB range.
    [[nodiscard]] float toNormalised(float value) const;
@@ -95,7 +91,7 @@ private:
    double _centerFreqHz{0.0};
    double _bandwidthHz{0.0};
 
-   // Embedded colour bar
+   // Embedded color bar
    ColorBarStrip* _colorBar{nullptr};
    static constexpr int COLOR_BAR_WIDTH = 68;
 

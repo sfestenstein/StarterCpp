@@ -57,9 +57,9 @@ void ColorBarStrip::paintEvent(QPaintEvent* /*event*/)
 
    painter.fillRect(rect(), QColor(25, 25, 30));
 
-   int barLeft   = H_PADDING;
-   int barTop    = V_PADDING;
-   int barHeight = height() - 2 * V_PADDING;
+   const int barLeft   = H_PADDING;
+   const int barTop    = V_PADDING;
+   const int barHeight = height() - (2 * V_PADDING);
 
    if (barHeight <= 0)
    {
@@ -69,8 +69,8 @@ void ColorBarStrip::paintEvent(QPaintEvent* /*event*/)
    // Gradient strip — top = high value, bottom = low value
    for (int y = 0; y < barHeight; ++y)
    {
-      float norm = 1.0F - static_cast<float>(y) / static_cast<float>(barHeight);
-      Color c = _colorMap.map(norm);
+      const float norm = 1.0F - (static_cast<float>(y) / static_cast<float>(barHeight));
+      const Color c = _colorMap.map(norm);
       painter.fillRect(barLeft, barTop + y, BAR_WIDTH, 1,
                        QColor(c.r, c.g, c.b, c.a));
    }
@@ -84,20 +84,20 @@ void ColorBarStrip::paintEvent(QPaintEvent* /*event*/)
    font.setPointSize(7);
    painter.setFont(font);
 
-   int labelLeft = barLeft + BAR_WIDTH + 3;
+   const int labelLeft = barLeft + BAR_WIDTH + 3;
 
    for (int i = 0; i <= _tickCount; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(_tickCount);
-      float db = _maxDb - frac * (_maxDb - _minDb);
-      int yPos = barTop + static_cast<int>(frac * static_cast<float>(barHeight));
+      const float frac = static_cast<float>(i) / static_cast<float>(_tickCount);
+      const float db = _maxDb - (frac * (_maxDb - _minDb));
+      const int yPos = barTop + static_cast<int>(frac * static_cast<float>(barHeight));
 
       painter.setPen(QColor(100, 100, 110));
       painter.drawLine(barLeft + BAR_WIDTH, yPos,
                        barLeft + BAR_WIDTH + 2, yPos);
 
       painter.setPen(QColor(180, 180, 190));
-      QString label = QString::number(static_cast<int>(db));
+      const QString label = QString::number(static_cast<int>(db));
       painter.drawText(labelLeft, yPos - 6, LABEL_WIDTH, 12,
                        Qt::AlignLeft | Qt::AlignVCenter, label);
    }
@@ -193,8 +193,8 @@ QSize ColorBarWidget::minimumSizeHint() const
 
 void ColorBarWidget::onSpinBoxChanged()
 {
-   float minDb = static_cast<float>(_minSpin->value());
-   float maxDb = static_cast<float>(_maxSpin->value());
+   auto minDb = static_cast<float>(_minSpin->value());
+   auto maxDb = static_cast<float>(_maxSpin->value());
 
    // Enforce min < max
    if (minDb >= maxDb)

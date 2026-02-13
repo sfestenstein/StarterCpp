@@ -23,6 +23,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMainWindow>
+#include <QSlider>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -52,22 +53,22 @@ std::vector<float> generateSpectrum(int frame)
    std::vector<float> mag(FFT_BINS, 0.0F);
 
    // Sweep a main peak across the spectrum
-   float centre = static_cast<float>(frame % FFT_BINS);
+   auto centre = static_cast<float>(frame % FFT_BINS);
    constexpr float SIGMA = 8.0F;
 
    for (size_t i = 0; i < FFT_BINS; ++i)
    {
-      float dist = static_cast<float>(i) - centre;
-      float peak = std::exp(-0.5F * (dist * dist) / (SIGMA * SIGMA));
+      auto dist = static_cast<float>(i) - centre;
+      const float peak = std::exp(-0.5F * (dist * dist) / (SIGMA * SIGMA));
 
       // Add a second harmonic at double the frequency
-      float centre2 = std::fmod(centre * 2.0F, static_cast<float>(FFT_BINS));
-      float dist2 = static_cast<float>(i) - centre2;
-      float harmonic = 0.3F * std::exp(-0.5F * (dist2 * dist2) / (SIGMA * SIGMA));
+      auto centre2 = std::fmod(centre * 2.0F, static_cast<float>(FFT_BINS));
+      auto dist2 = static_cast<float>(i) - centre2;
+      const float harmonic = 0.3F * std::exp(-0.5F * (dist2 * dist2) / (SIGMA * SIGMA));
 
       // Noise floor
-      float noise = 0.005F + 0.003F * (static_cast<float>(std::rand()) /
-                                       static_cast<float>(RAND_MAX));
+      const float noise = 0.005F + (0.003F * (static_cast<float>(arc4random()) /
+                                              static_cast<float>(RAND_MAX)));
 
       mag[i] = peak + harmonic + noise;
    }
@@ -84,17 +85,17 @@ std::vector<std::complex<float>> generateConstellation(int frame, int count)
    pts.reserve(static_cast<std::size_t>(count));
 
    // Slowly rotating reference phase
-   float phaseOffset = static_cast<float>(frame) * 0.02F;
+   auto phaseOffset = static_cast<float>(frame) * 0.02F;
 
    for (int i = 0; i < count; ++i)
    {
       // Pick one of four QPSK symbol points
-      int symbol = i % 4;
-      float angle = TWO_PI * (static_cast<float>(symbol) + 0.5F) / 4.0F + phaseOffset;
+      const int symbol = i % 4;
+      const float angle = (TWO_PI * (static_cast<float>(symbol) + 0.5F) / 4.0F) + phaseOffset;
       constexpr float RADIUS = 0.7F;
 
-      float real = RADIUS * std::cos(angle) + noise(gen);
-      float imag = RADIUS * std::sin(angle) + noise(gen);
+      const float real = (RADIUS * std::cos(angle)) + noise(gen);
+      const float imag = (RADIUS * std::sin(angle)) + noise(gen);
       pts.emplace_back(real, imag);
    }
    return pts;
@@ -106,14 +107,14 @@ std::vector<std::complex<float>> generateConstellation(int frame, int count)
 // Main
 // ============================================================================
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) // NOLINT
 {
    CommonUtils::GeneralLogger logger;
    logger.init("RealTimeGraphsTest");
    GPINFO("Starting RealTimeGraphsTest demo application");
 
-   QApplication app(argc, argv);
-   app.setApplicationName("RealTimeGraphsTest");
+   const QApplication app(argc, argv);
+   QApplication::setApplicationName("RealTimeGraphsTest");
 
    // ---- Create widgets ----
    auto* spectrum      = new RealTimeGraphs::SpectrumWidget;
@@ -128,7 +129,7 @@ int main(int argc, char* argv[])
    spectrum->setFrequencyRange(2.45e9, 20.0e6);
    waterfall->setFrequencyRange(2.45e9, 20.0e6);
 
-   // ---- Build per-tab layouts with colour-map selectors ----
+   // ---- Build per-tab layouts with color-map selectors ----
 
    auto buildTabPage = [](QWidget* graphWidget,
                           const QString& label,
@@ -185,14 +186,41 @@ int main(int argc, char* argv[])
          waterfall->setColorMap(p);
       });
 
-   // Constellation doesn't use a colour map, but we keep the layout consistent
+   // Constellation doesn't use a color map, but we keep the layout consistent
    auto* constPage = new QWidget;
    auto* constLayout = new QVBoxLayout(constPage);
    auto* constToolbar = new QHBoxLayout;
    constToolbar->addWidget(new QLabel("I/Q Constellation — rotating QPSK + noise"));
    constToolbar->addStretch();
    constLayout->addLayout(constToolbar);
-   constLayout->addWidget(constellation, 1);
+
+   // Constellation plot + fade slider side by side
+   auto* constRow = new QHBoxLayout;
+   constRow->addWidget(constellation, 1);
+
+   // Vertical fade-time slider (0.5 s – 30 s)
+   auto* fadeLayout = new QVBoxLayout;
+   auto* fadeLabel = new QLabel("Fade\n5.0 s");
+   fadeLabel->setStyleSheet("QLabel { color: #B4B4BE; font-size: 9pt; }");
+   fadeLabel->setAlignment(Qt::AlignCenter);
+
+   auto* fadeSlider = new QSlider(Qt::Vertical);
+   fadeSlider->setRange(5, 300);   // tenths of a second: 0.5 s – 30.0 s
+   fadeSlider->setValue(50);       // 5.0 s default
+   fadeSlider->setToolTip("Persistence fade time\n0.5 s (bottom) – 30 s (top)");
+   fadeSlider->setFixedWidth(30);
+   QObject::connect(fadeSlider, &QSlider::valueChanged, [constellation, fadeLabel](int val)
+   {
+      const float seconds = static_cast<float>(val) / 10.0F;
+      constellation->setFadeTime(seconds);
+      fadeLabel->setText(QString("Fade\n%1 s").arg(static_cast<double>(seconds), 0, 'f', 1));
+   });
+
+   fadeLayout->addWidget(fadeLabel);
+   fadeLayout->addWidget(fadeSlider, 1);
+   constRow->addLayout(fadeLayout);
+
+   constLayout->addLayout(constRow, 1);
 
    // ---- Tab widget ----
    auto* tabs = new QTabWidget;
@@ -235,7 +263,7 @@ int main(int argc, char* argv[])
    GPINFO("Data feed running at {} FPS ({} ms interval)",
           1000 / TIMER_INTERVAL_MS, TIMER_INTERVAL_MS);
 
-   int result = app.exec();
+   int result = QApplication::exec();
    GPINFO("Application exited with code {}", result);
    return result;
 }

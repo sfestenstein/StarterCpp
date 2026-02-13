@@ -1,6 +1,7 @@
-#include "RealTimeGraphs/WaterfallWidget.h"
+#include "WaterfallWidget.h"
 
-#include "RealTimeGraphs/ColorBarWidget.h"
+#include "ColorBarWidget.h"
+#include "CommonGuiUtils.h"
 
 #include <QPainter>
 #include <QPaintEvent>
@@ -8,7 +9,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 
 namespace RealTimeGraphs
 {
@@ -22,8 +22,8 @@ WaterfallWidget::WaterfallWidget(int historyRows, QWidget* parent)
    , _historyRows{historyRows}
    , _rows(static_cast<std::size_t>(historyRows))
 {
-   setMinimumSize(minimumSizeHint());
    setAttribute(Qt::WA_OpaquePaintEvent);
+   setMinimumSize(320, 200);
 
    _colorBar = new ColorBarStrip(this);
    _colorBar->setDbRange(_minDb, _maxDb);
@@ -39,13 +39,13 @@ void WaterfallWidget::addRow(const std::vector<float>& magnitudes)
    // Normalise the incoming row
    std::vector<float> normRow;
    normRow.reserve(magnitudes.size());
-   for (float val : magnitudes)
+   for (const float val : magnitudes)
    {
       normRow.push_back(toNormalised(val));
    }
 
    {
-      std::lock_guard<std::mutex> lock(_mutex);
+      const std::lock_guard<std::mutex> lock(_mutex);
       _binCount = static_cast<int>(magnitudes.size());
       _rows.push(normRow);
    }
@@ -100,7 +100,7 @@ void WaterfallWidget::paintEvent(QPaintEvent* /*event*/)
    QPainter painter(this);
    painter.setRenderHint(QPainter::Antialiasing, false);
 
-   QRect plotArea(MARGIN_LEFT, MARGIN_TOP,
+   const QRect plotArea(MARGIN_LEFT, MARGIN_TOP,
                   width() - MARGIN_LEFT - MARGIN_RIGHT,
                   height() - MARGIN_TOP - MARGIN_BOTTOM);
 
@@ -143,7 +143,7 @@ void WaterfallWidget::resizeEvent(QResizeEvent* event)
 {
    QWidget::resizeEvent(event);
 
-   QRect area(MARGIN_LEFT, MARGIN_TOP,
+   const QRect area(MARGIN_LEFT, MARGIN_TOP,
               width() - MARGIN_LEFT - MARGIN_RIGHT,
               height() - MARGIN_TOP - MARGIN_BOTTOM);
    _colorBar->setGeometry(
@@ -161,7 +161,7 @@ void WaterfallWidget::resizeEvent(QResizeEvent* event)
 
 void WaterfallWidget::rebuildImage()
 {
-   std::lock_guard<std::mutex> lock(_mutex);
+   const std::lock_guard<std::mutex> lock(_mutex);
 
    auto rowCount = static_cast<int>(_rows.size());
    if (rowCount == 0 || _binCount == 0)
@@ -177,16 +177,16 @@ void WaterfallWidget::rebuildImage()
    for (int r = 0; r < rowCount; ++r)
    {
       // Logical index: 0 = oldest.  We want newest at image top.
-      int logicalIdx = rowCount - 1 - r;
+      const int logicalIdx = rowCount - 1 - r;
       const auto& row = _rows[static_cast<std::size_t>(logicalIdx)];
 
       auto* scanLine = reinterpret_cast<uint8_t*>(_image.scanLine(r));
-      int cols = std::min(_binCount, static_cast<int>(row.size()));
+      const int cols = std::min(_binCount, static_cast<int>(row.size()));
 
       for (int c = 0; c < cols; ++c)
       {
-         Color clr = _colorMap.map(row[static_cast<std::size_t>(c)]);
-         int offset = c * 4;
+         const Color clr = _colorMap.map(row[static_cast<std::size_t>(c)]);
+         const int offset = c * 4;
          scanLine[offset + 0] = clr.r;
          scanLine[offset + 1] = clr.g;
          scanLine[offset + 2] = clr.b;
@@ -204,11 +204,11 @@ float WaterfallWidget::toNormalised(float value) const
       db = 20.0F * std::log10(std::max(value, EPSILON));
    }
 
-   float norm = (db - _minDb) / (_maxDb - _minDb);
+   const float norm = (db - _minDb) / (_maxDb - _minDb);
    return std::clamp(norm, 0.0F, 1.0F);
 }
 
-void WaterfallWidget::drawFrequencyLabels(QPainter& painter, const QRect& area)
+void WaterfallWidget::drawFrequencyLabels(QPainter& painter, const QRect& area) const
 {
    painter.setPen(QColor(180, 180, 190));
    QFont font = painter.font();
@@ -216,18 +216,18 @@ void WaterfallWidget::drawFrequencyLabels(QPainter& painter, const QRect& area)
    painter.setFont(font);
 
    constexpr int X_TICKS = 8;
-   bool hasFreq = (_bandwidthHz > 0.0);
-   double startFreq = _centerFreqHz - _bandwidthHz / 2.0;
+   const bool hasFreq = (_bandwidthHz > 0.0);
+   const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
 
    for (int i = 0; i <= X_TICKS; ++i)
    {
-      float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
-      int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
+      const float frac = static_cast<float>(i) / static_cast<float>(X_TICKS);
+      const int xPos = area.left() + static_cast<int>(frac * static_cast<float>(area.width()));
 
       QString label;
       if (hasFreq)
       {
-         double freq = startFreq + static_cast<double>(frac) * _bandwidthHz;
+         const double freq = startFreq + (static_cast<double>(frac) * _bandwidthHz);
          label = QString::fromStdString(formatFrequency(freq));
       }
       else
@@ -236,34 +236,10 @@ void WaterfallWidget::drawFrequencyLabels(QPainter& painter, const QRect& area)
       }
 
       constexpr int LABEL_WIDTH = 80;
-      painter.drawText(xPos - LABEL_WIDTH / 2, area.bottom() + 3,
+      painter.drawText(xPos - (LABEL_WIDTH / 2), area.bottom() + 3,
                        LABEL_WIDTH, MARGIN_BOTTOM - 5,
                        Qt::AlignCenter, label);
    }
-}
-
-std::string WaterfallWidget::formatFrequency(double freqHz)
-{
-   double absFreq = std::abs(freqHz);
-   char buf[32];
-
-   if (absFreq >= 1.0e9)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f GHz", freqHz / 1.0e9);
-   }
-   else if (absFreq >= 1.0e6)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f MHz", freqHz / 1.0e6);
-   }
-   else if (absFreq >= 1.0e3)
-   {
-      std::snprintf(buf, sizeof(buf), "%.3f kHz", freqHz / 1.0e3);
-   }
-   else
-   {
-      std::snprintf(buf, sizeof(buf), "%.1f Hz", freqHz);
-   }
-   return std::string(buf);
 }
 
 } // namespace RealTimeGraphs

@@ -8,8 +8,10 @@
 #include <QWidget>
 
 // System headers
+#include <chrono>
 #include <complex>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace RealTimeGraphs
@@ -46,11 +48,20 @@ public:
    /// Set persistence depth (how many samples to keep).
    void setPersistenceDepth(int depth);
 
-   /// Set dot colour (recent samples).
+   /// Set dot color (recent samples).
    void setDotColor(const QColor& color);
 
    /// Enable or disable grid drawing.
    void setGridEnabled(bool enable);
+
+   /// Set the fade amount for persistence mode (0 = no fade, 255 = full fade).
+   /// Controls how transparent the oldest points become.
+   void setFadeAmount(int amount);
+
+   /// Set the persistence fade time in seconds.
+   /// Points fade linearly from full opacity to zero over this duration.
+   /// @param seconds  Fade time (clamped to 0.5 – 30 s, default 5 s).
+   void setFadeTime(float seconds);
 
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
@@ -66,14 +77,20 @@ private:
    /// Map an I/Q value to a pixel position within the plot area.
    [[nodiscard]] QPoint mapToPixel(float i, float q, const QRect& area) const;
 
+   using Clock     = std::chrono::steady_clock;
+   using TimePoint  = Clock::time_point;
+   using TimedPoint = std::pair<TimePoint, std::complex<float>>;
+
    std::mutex _mutex;
-   CommonUtils::CircularBuffer<std::complex<float>> _points;
+   CommonUtils::CircularBuffer<TimedPoint> _points;
 
    float _axisRange{1.5F};
    int _pointSize{3};
    bool _persistence{true};
    QColor _dotColor{0, 255, 128};
    bool _gridEnabled{true};
+   int _fadeAmount{255};  ///< 0 = no fade (all opaque), 255 = full fade (oldest invisible)
+   float _fadeTimeSec{5.0F};  ///< Seconds for a point to fade from full opacity to zero
 
    // Layout margins
    static constexpr int MARGIN_LEFT   = 40;

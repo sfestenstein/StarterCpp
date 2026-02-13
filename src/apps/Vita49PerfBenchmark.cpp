@@ -11,6 +11,7 @@
 #include "GeneralLogger.h"
 #include "Vita49Codec.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -18,6 +19,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cerrno>
 
 namespace
 {
@@ -182,14 +184,14 @@ BenchResult runContextBenchmark(Vita49_2::Vita49Codec& codec,
 // main
 // ============================================================================
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) // NOLINT
 {
    CommonUtils::GeneralLogger logger;
    logger.init("Vita49PerfBenchmark");
 
    int iterations = 100;
-   if (argc > 1) { iterations = std::atoi(argv[1]); }
-   if (iterations < 1) { iterations = 1; }
+   if (argc > 1) { iterations = std::stoi(argv[1]); }
+   iterations = std::max(iterations, 1);
 
    constexpr uint32_t STREAM_ID = 0xBEEF;
 
@@ -205,7 +207,7 @@ int main(int argc, char* argv[])
       Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
       logHeader();
 
-      for (size_t sz : {100, 1000, 10000, 50000, 100000, 500000, 1000000})
+      for (const size_t sz : {100, 1000, 10000, 50000, 100000, 500000, 1000000})
       {
          auto samples = generateTestSignal(sz);
          auto result  = runBenchmark(codec, samples, STREAM_ID, iterations);
@@ -219,7 +221,7 @@ int main(int argc, char* argv[])
       Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::LittleEndian);
       logHeader();
 
-      for (size_t sz : {100, 1000, 10000, 100000, 1000000})
+      for (const size_t sz : {100, 1000, 10000, 100000, 1000000})
       {
          auto samples = generateTestSignal(sz);
          auto result  = runBenchmark(codec, samples, STREAM_ID, iterations);

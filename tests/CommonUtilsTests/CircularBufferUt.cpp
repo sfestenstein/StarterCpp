@@ -409,16 +409,16 @@ TEST(CircularBufferTest, Clear_EmptyBuffer_IsNoOp)
 TEST(CircularBufferTest, WrapAround_ExactlyTwoFullCycles_CorrectContents)
 {
    constexpr std::size_t CAP = 5;
-   CircularBuffer<int> buf(CAP);
+   CircularBuffer<size_t> buf(CAP);
 
    // Push exactly 2 * capacity elements (0..9)
-   for (int i = 0; i < static_cast<int>(CAP * 2); ++i)
+   for (size_t i = 0; i < static_cast<int>(CAP * 2); ++i)
    {
       buf.push(i);
    }
    EXPECT_EQ(buf.size(), CAP);
    auto vec = buf.toVector();
-   EXPECT_EQ(vec, (std::vector<int>{5, 6, 7, 8, 9}));
+   EXPECT_EQ(vec, (std::vector<size_t>{5, 6, 7, 8, 9}));
 }
 
 TEST(CircularBufferTest, WrapAround_NonMultipleOverflow_CorrectContents)
@@ -532,13 +532,13 @@ TEST(CircularBufferTest, MultipleClearCycles_StayConsistent)
       buf.clear();
       for (int i = 0; i < 5; ++i)
       {
-         buf.push(cycle * 10 + i);
+         buf.push((cycle * 10) + i);
       }
       EXPECT_EQ(buf.size(), 3U);
       EXPECT_TRUE(buf.full());
       // Should contain the last 3 pushed: cycle*10+2, +3, +4
-      EXPECT_EQ(buf[0], cycle * 10 + 2);
-      EXPECT_EQ(buf[1], cycle * 10 + 3);
-      EXPECT_EQ(buf[2], cycle * 10 + 4);
+      EXPECT_EQ(buf[0], (cycle * 10) + 2);
+      EXPECT_EQ(buf[1], (cycle * 10) + 3);
+      EXPECT_EQ(buf[2], (cycle * 10) + 4);
    }
 }
