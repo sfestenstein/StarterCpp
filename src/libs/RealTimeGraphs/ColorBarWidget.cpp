@@ -81,7 +81,7 @@ void ColorBarStrip::paintEvent(QPaintEvent* /*event*/)
 
    // Tick marks and dB labels
    QFont font = painter.font();
-   font.setPointSize(7);
+   font.setPointSize(10);
    painter.setFont(font);
 
    const int labelLeft = barLeft + BAR_WIDTH + 3;

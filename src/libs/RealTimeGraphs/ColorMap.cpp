@@ -29,6 +29,9 @@ ColorMap::ColorMap(Palette palette)
       case Palette::Turbo:
          buildTurbo();
          break;
+      case Palette::RoyGB:
+         buildRoyGB();
+         break;
    }
    _name = paletteName(palette);
 }
@@ -47,7 +50,7 @@ Color ColorMap::map(float t) const
 
 std::size_t ColorMap::paletteCount()
 {
-   return 5;
+   return 6;
 }
 
 ColorMap::Palette ColorMap::paletteAt(std::size_t index)
@@ -60,6 +63,7 @@ ColorMap::Palette ColorMap::paletteAt(std::size_t index)
       case 2: return Palette::Jet;
       case 3: return Palette::Grayscale;
       case 4: return Palette::Turbo;
+      case 5: return Palette::RoyGB;
       default: return Palette::Viridis;
    }
    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
@@ -75,6 +79,7 @@ std::string ColorMap::paletteName(Palette palette)
       case Palette::Jet:       return "Jet";
       case Palette::Grayscale: return "Grayscale";
       case Palette::Turbo:     return "Turbo";
+      case Palette::RoyGB:     return "RoyGB";
    }
    return "Unknown";
    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
@@ -196,5 +201,14 @@ void ColorMap::buildTurbo()
       {1.00F, {122, 4,   3,   255}},
    });
 }
+ void ColorMap::buildRoyGB()
+ {
+      buildGradient({
+         {0.00F, {0,   0,   255, 255}}, // Blue
+         {0.33F, {0,   255, 0,   255}}, // Green
+         {0.66F, {255, 255, 0,   255}}, // Yellow
+         {1.00F, {255, 0,   0,   255}}, // Red
+      });
+ }
 
 } // namespace RealTimeGraphs

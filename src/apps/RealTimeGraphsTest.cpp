@@ -1,10 +1,9 @@
 // =============================================================================
 // RealTimeGraphsTest — Interactive demo of the RealTimeGraphs widget library.
 //
-// Three tabs:
-//   1. Spectrum   — swept-tone FFT bar chart
-//   2. Waterfall  — same data rendered as a scrolling spectrogram
-//   3. Constellation — I/Q scatter of a rotating QPSK-like pattern + noise
+// Two tabs:
+//   1. A-scan / B-scan — Spectrum stacked on top of Waterfall with linked X axes
+//   2. Constellation   — I/Q scatter of a rotating QPSK-like pattern + noise
 //
 // All data is generated internally from synthetic waveforms.
 // =============================================================================
@@ -67,8 +66,8 @@ std::vector<float> generateSpectrum(int frame)
       const float harmonic = 0.3F * std::exp(-0.5F * (dist2 * dist2) / (SIGMA * SIGMA));
 
       // Noise floor
-      const float noise = 0.005F + (0.003F * (static_cast<float>(arc4random()) /
-                                              static_cast<float>(RAND_MAX)));
+      const float noise =
+          0.005F + (0.003F * (static_cast<float>(arc4random()) / static_cast<float>(RAND_MAX)));
 
       mag[i] = peak + harmonic + noise;
    }
@@ -117,8 +116,8 @@ int main(int argc, char* argv[]) // NOLINT
    QApplication::setApplicationName("RealTimeGraphsTest");
 
    // ---- Create widgets ----
-   auto* spectrum      = new RealTimeGraphs::SpectrumWidget;
-   auto* waterfall     = new RealTimeGraphs::WaterfallWidget(256);
+   auto* spectrum = new RealTimeGraphs::SpectrumWidget;
+   auto* waterfall = new RealTimeGraphs::WaterfallWidget(256);
    auto* constellation = new RealTimeGraphs::ConstellationWidget(8192);
 
    spectrum->setDbRange(-100.0F, 0.0F);
@@ -127,64 +126,74 @@ int main(int argc, char* argv[]) // NOLINT
 
    // Set a representative frequency range: 2.45 GHz centre, 20 MHz bandwidth
    spectrum->setFrequencyRange(2.45e9, 20.0e6);
+   spectrum->setXAxisVisible(false); // Waterfall below shows the shared X axis
    waterfall->setFrequencyRange(2.45e9, 20.0e6);
 
-   // ---- Build per-tab layouts with color-map selectors ----
+   // ---- Build A-scan / B-scan combined page ----
 
-   auto buildTabPage = [](QWidget* graphWidget,
-                          const QString& label,
-                          auto onPaletteChanged) -> QWidget*
+   auto* abPage = new QWidget;
+   auto* abLayout = new QVBoxLayout(abPage);
+
+   // Shared toolbar
+   auto* abToolbar = new QHBoxLayout;
+   abToolbar->addWidget(new QLabel("Color Map:"));
+
+   auto* abCombo = new QComboBox;
+   for (std::size_t i = 0; i < RealTimeGraphs::ColorMap::paletteCount(); ++i)
    {
-      auto* page = new QWidget;
-      auto* layout = new QVBoxLayout(page);
+      auto pal = RealTimeGraphs::ColorMap::paletteAt(i);
+      abCombo->addItem(QString::fromStdString(RealTimeGraphs::ColorMap::paletteName(pal)),
+                       static_cast<int>(i));
+   }
+   QObject::connect(abCombo, &QComboBox::currentIndexChanged, [spectrum, waterfall](int idx) 
+   {
+      auto pal = RealTimeGraphs::ColorMap::paletteAt(static_cast<std::size_t>(idx));
+      spectrum->setColorMap(pal);
+      waterfall->setColorMap(pal);
+   });
+   abToolbar->addWidget(abCombo);
+   abToolbar->addWidget(new QLabel("Swept-tone FFT  —  A-scan / B-scan"));
 
-      // Toolbar row
-      auto* toolbar = new QHBoxLayout;
-      toolbar->addWidget(new QLabel("Color Map:"));
-
-      auto* combo = new QComboBox;
-      for (std::size_t i = 0; i < RealTimeGraphs::ColorMap::paletteCount(); ++i)
-      {
-         auto pal = RealTimeGraphs::ColorMap::paletteAt(i);
-         combo->addItem(
-            QString::fromStdString(RealTimeGraphs::ColorMap::paletteName(pal)),
-            static_cast<int>(i));
-      }
-      QObject::connect(combo, &QComboBox::currentIndexChanged,
-                       [onPaletteChanged](int idx)
-                       {
-                          auto pal = RealTimeGraphs::ColorMap::paletteAt(
-                             static_cast<std::size_t>(idx));
-                          onPaletteChanged(pal);
-                       });
-      toolbar->addWidget(combo);
-      toolbar->addWidget(new QLabel(label));
-      toolbar->addStretch();
-
-      layout->addLayout(toolbar);
-      layout->addWidget(graphWidget, 1);
-      return page;
-   };
-
-   QWidget* spectrumPage = buildTabPage(spectrum, "Swept-tone FFT",
-      [spectrum](RealTimeGraphs::ColorMap::Palette p)
-      {
-         spectrum->setColorMap(p);
-      });
-
-   // Add max-hold checkbox to the spectrum page toolbar
-   auto* spectrumToolbar = spectrumPage->layout()->itemAt(0)->layout();
    auto* maxHoldCheck = new QCheckBox("Max Hold");
    maxHoldCheck->setStyleSheet("QCheckBox { color: #B4B4BE; }");
-   spectrumToolbar->addWidget(maxHoldCheck);
-   QObject::connect(maxHoldCheck, &QCheckBox::toggled,
-                    spectrum, &RealTimeGraphs::SpectrumWidget::setMaxHoldEnabled);
+   abToolbar->addWidget(maxHoldCheck);
+   QObject::connect(maxHoldCheck, &QCheckBox::toggled, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::setMaxHoldEnabled);
 
-   QWidget* waterfallPage = buildTabPage(waterfall, "Spectrogram",
-      [waterfall](RealTimeGraphs::ColorMap::Palette p)
-      {
-         waterfall->setColorMap(p);
-      });
+   abToolbar->addStretch();
+   abLayout->addLayout(abToolbar);
+
+   // Spectrum on top, Waterfall below — linked X axes
+   abLayout->addWidget(spectrum, 1);
+   abLayout->addWidget(waterfall, 1);
+
+   // Bidirectional X-axis linking
+   QObject::connect(spectrum, &RealTimeGraphs::SpectrumWidget::xViewChanged, waterfall,
+                    &RealTimeGraphs::WaterfallWidget::setXViewRange);
+   QObject::connect(waterfall, &RealTimeGraphs::WaterfallWidget::xViewChanged, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::setXViewRange);
+
+   // Bidirectional tracking-cursor linking (vertical line sync)
+   QObject::connect(spectrum, &RealTimeGraphs::SpectrumWidget::trackingCursorXChanged, waterfall,
+                    &RealTimeGraphs::WaterfallWidget::setLinkedCursorX);
+   QObject::connect(spectrum, &RealTimeGraphs::SpectrumWidget::trackingCursorLeft, waterfall,
+                    &RealTimeGraphs::WaterfallWidget::clearLinkedCursorX);
+   QObject::connect(waterfall, &RealTimeGraphs::WaterfallWidget::trackingCursorXChanged, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::setLinkedCursorX);
+   QObject::connect(waterfall, &RealTimeGraphs::WaterfallWidget::trackingCursorLeft, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::clearLinkedCursorX);
+
+   // Bidirectional measurement-cursor linking (vertical lines only)
+   QObject::connect(spectrum, &RealTimeGraphs::SpectrumWidget::measCursorsChanged, waterfall,
+                    &RealTimeGraphs::WaterfallWidget::setLinkedMeasCursors);
+   QObject::connect(waterfall, &RealTimeGraphs::WaterfallWidget::measCursorsChanged, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::setLinkedMeasCursors);
+
+   // Clear peer cursors on placement or middle-click
+   QObject::connect(spectrum, &RealTimeGraphs::SpectrumWidget::requestPeerCursorClear, waterfall,
+                    &RealTimeGraphs::WaterfallWidget::clearMeasCursors);
+   QObject::connect(waterfall, &RealTimeGraphs::WaterfallWidget::requestPeerCursorClear, spectrum,
+                    &RealTimeGraphs::SpectrumWidget::clearMeasCursors);
 
    // Constellation doesn't use a color map, but we keep the layout consistent
    auto* constPage = new QWidget;
@@ -205,11 +214,11 @@ int main(int argc, char* argv[]) // NOLINT
    fadeLabel->setAlignment(Qt::AlignCenter);
 
    auto* fadeSlider = new QSlider(Qt::Vertical);
-   fadeSlider->setRange(5, 300);   // tenths of a second: 0.5 s – 30.0 s
-   fadeSlider->setValue(50);       // 5.0 s default
+   fadeSlider->setRange(5, 300); // tenths of a second: 0.5 s – 30.0 s
+   fadeSlider->setValue(50);     // 5.0 s default
    fadeSlider->setToolTip("Persistence fade time\n0.5 s (bottom) – 30 s (top)");
    fadeSlider->setFixedWidth(30);
-   QObject::connect(fadeSlider, &QSlider::valueChanged, [constellation, fadeLabel](int val)
+   QObject::connect(fadeSlider, &QSlider::valueChanged, [constellation, fadeLabel](int val) 
    {
       const float seconds = static_cast<float>(val) / 10.0F;
       constellation->setFadeTime(seconds);
@@ -224,8 +233,7 @@ int main(int argc, char* argv[]) // NOLINT
 
    // ---- Tab widget ----
    auto* tabs = new QTabWidget;
-   tabs->addTab(spectrumPage, "Spectrum");
-   tabs->addTab(waterfallPage, "Waterfall");
+   tabs->addTab(abPage, "A-scan / B-scan");
    tabs->addTab(constPage, "Constellation");
 
    // ---- Main window ----
@@ -245,7 +253,7 @@ int main(int argc, char* argv[]) // NOLINT
    constexpr int TIMER_INTERVAL_MS = 33; // ~30 FPS
 
    QTimer timer;
-   QObject::connect(&timer, &QTimer::timeout, [&]()
+   QObject::connect(&timer, &QTimer::timeout, [&]() 
    {
       // Spectrum & waterfall share the same data
       auto mag = generateSpectrum(frame);
@@ -260,8 +268,8 @@ int main(int argc, char* argv[]) // NOLINT
       ++frame;
    });
    timer.start(TIMER_INTERVAL_MS);
-   GPINFO("Data feed running at {} FPS ({} ms interval)",
-          1000 / TIMER_INTERVAL_MS, TIMER_INTERVAL_MS);
+   GPINFO("Data feed running at {} FPS ({} ms interval)", 1000 / TIMER_INTERVAL_MS,
+          TIMER_INTERVAL_MS);
 
    int result = QApplication::exec();
    GPINFO("Application exited with code {}", result);

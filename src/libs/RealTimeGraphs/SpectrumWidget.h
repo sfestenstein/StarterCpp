@@ -64,6 +64,11 @@ public:
    /// Show or hide the built-in color-bar legend.
    void setColorBarVisible(bool visible);
 
+   /// Show or hide the X-axis labels and tick marks.
+   /// When hidden the bottom margin is collapsed, useful when stacked
+   /// above another widget that shows the same X axis.
+   void setXAxisVisible(bool visible);
+
    /// Enable or disable decaying max-hold trace.
    void setMaxHoldEnabled(bool enabled);
 
@@ -72,6 +77,42 @@ public:
 
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
+
+public slots:
+   /// Set the visible X range (as fraction of total bin range [0, 1]).
+   /// Used for linked-axis synchronisation — does not re-emit xViewChanged.
+   void setXViewRange(double xStart, double xEnd);
+
+   /// Show a linked vertical cursor line from another widget.
+   void setLinkedCursorX(double xData);
+
+   /// Hide the linked vertical cursor line.
+   void clearLinkedCursorX();
+
+   /// Show linked measurement-cursor vertical lines from another widget.
+   void setLinkedMeasCursors(double x1Valid, double x1,
+                             double x2Valid, double x2);
+
+   /// Clear local measurement cursors (called by linked peer).
+   void clearMeasCursors();
+
+signals:
+   /// Emitted when the user zooms or pans the X axis.
+   void xViewChanged(double xStart, double xEnd);
+
+   /// Emitted when the tracking crosshair X position changes.
+   void trackingCursorXChanged(double xData);
+
+   /// Emitted when the tracking crosshair leaves the plot.
+   void trackingCursorLeft();
+
+   /// Emitted when measurement cursors change.
+   /// Valid flags are 1.0 if present, 0.0 if absent.
+   void measCursorsChanged(double x1Valid, double x1,
+                           double x2Valid, double x2);
+
+   /// Emitted when the peer widget should clear its measurement cursors.
+   void requestPeerCursorClear();
 
 protected:
    void paintEvent(QPaintEvent* event) override;
@@ -89,6 +130,9 @@ private:
    void drawSpectrum(QPainter& painter, const QRect& area) const;
    void drawMaxHold(QPainter& painter, const QRect& area) const;
    void drawLabels(QPainter& painter, const QRect& area) const;
+
+   /// Emit the measCursorsChanged signal with current overlay state.
+   void emitMeasCursorsChanged();
 
    /// Compute the plot area rectangle from the current widget size.
    [[nodiscard]] QRect plotArea() const;
@@ -144,7 +188,10 @@ private:
    static constexpr int MARGIN_RIGHT  = 83;  // COLOR_BAR_WIDTH + 15
    static constexpr int MARGIN_TOP    = 10;
    static constexpr int MARGIN_BOTTOM = 25;
+   static constexpr int MARGIN_BOTTOM_HIDDEN = 2;
    static constexpr int TICK_LENGTH   = 5;
+
+   bool _xAxisVisible{true};
 
    // Cursor overlay (crosshair + measurement cursors)
    PlotCursorOverlay _cursorOverlay;

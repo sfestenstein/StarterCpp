@@ -67,6 +67,10 @@ public:
    /// Set the layout margins so axis labels are positioned correctly.
    void setMargins(int left, int right, int top, int bottom);
 
+   /// Control whether X-axis labels are drawn by cursors.
+   /// Set to false when the X axis is hidden (e.g. stacked layout).
+   void setShowXLabels(bool show) { _showXLabels = show; }
+
    // ----- Mouse event handlers (call from the owning widget) -----
 
    /// Call from mouseMoveEvent.  Returns true if repaint is needed.
@@ -86,6 +90,18 @@ public:
    /// Clear both measurement cursors.  Returns true if any were active.
    bool clearCursors();
 
+   /// Get measurement cursor data (for signal emission).
+   [[nodiscard]] const std::optional<DataPoint>& measCursor1() const { return _measCursor1; }
+   [[nodiscard]] const std::optional<DataPoint>& measCursor2() const { return _measCursor2; }
+
+   /// Set or clear a linked vertical cursor line from another widget.
+   /// Only draws a vertical line — no horizontal, no Y label.
+   void setLinkedTrackingX(double xData);
+   void clearLinkedTrackingX();
+
+   /// Set or clear linked measurement-cursor vertical lines from another widget.
+   void setLinkedMeasCursors(std::optional<double> x1, std::optional<double> x2);
+
    // ----- Drawing (call from paintEvent after other content) -----
 
    /// Draw the tracking crosshair, measurement cursors, and delta readout.
@@ -95,6 +111,7 @@ private:
    void drawTrackingCrosshair(QPainter& painter, const QRect& area) const;
    void drawMeasurementCursors(QPainter& painter, const QRect& area) const;
    void drawDeltaReadout(QPainter& painter, const QRect& area) const;
+   void drawLinkedCursors(QPainter& painter, const QRect& area) const;
 
    // Coordinate callbacks
    PixelToDataFn _pixelToData;
@@ -107,6 +124,7 @@ private:
    // Margins
    int _marginLeft{55};
    int _marginBottom{25};
+   bool _showXLabels{true};
 
    // Tracking crosshair state
    bool _cursorInPlot{false};
@@ -115,6 +133,11 @@ private:
    // Measurement cursors
    std::optional<DataPoint> _measCursor1;
    std::optional<DataPoint> _measCursor2;
+
+   // Linked vertical cursor lines from another widget
+   std::optional<double> _linkedTrackingX;
+   std::optional<double> _linkedMeas1X;
+   std::optional<double> _linkedMeas2X;
 };
 
 } // namespace RealTimeGraphs

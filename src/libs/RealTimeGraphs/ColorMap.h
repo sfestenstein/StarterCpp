@@ -35,6 +35,7 @@ public:
       Jet,         ///< Classic rainbow (not perceptually uniform)
       Grayscale,   ///< Black to white
       Turbo,       ///< Improved rainbow, Google
+      RoyGB        ///< Red-Orange-Yellow-Green-Blue
    };
 
    /// Build a LUT for the requested palette.
@@ -65,7 +66,7 @@ private:
    void buildJet();
    void buildGrayscale();
    void buildTurbo();
-
+   void buildRoyGB();
    /// Linearly interpolate between two colors.
    [[nodiscard]] static Color lerp(const Color& a, const Color& b, float t);
 

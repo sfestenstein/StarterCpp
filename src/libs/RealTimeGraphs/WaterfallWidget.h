@@ -8,11 +8,13 @@
 
 // Third-party headers
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QImage>
 #include <QWidget>
 
 // System headers
 #include <chrono>
+#include <cstdint>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -62,11 +64,49 @@ public:
    /// Minimum size hint for layout.
    [[nodiscard]] QSize minimumSizeHint() const override;
 
+public slots:
+   /// Set the visible X range (as fraction of total bin range [0, 1]).
+   /// Used for linked-axis synchronisation — does not re-emit xViewChanged.
+   void setXViewRange(double xStart, double xEnd);
+
+   /// Show a linked vertical cursor line from another widget.
+   void setLinkedCursorX(double xData);
+
+   /// Hide the linked vertical cursor line.
+   void clearLinkedCursorX();
+
+   /// Show linked measurement-cursor vertical lines from another widget.
+   void setLinkedMeasCursors(double x1Valid, double x1,
+                             double x2Valid, double x2);
+
+   /// Clear local measurement cursors (called by linked peer).
+   void clearMeasCursors();
+
+signals:
+   /// Emitted when the user zooms or pans the X axis.
+   void xViewChanged(double xStart, double xEnd);
+
+   /// Emitted when the tracking crosshair X position changes.
+   void trackingCursorXChanged(double xData);
+
+   /// Emitted when the tracking crosshair leaves the plot.
+   void trackingCursorLeft();
+
+   /// Emitted when measurement cursors change.
+   /// Valid flags are 1.0 if present, 0.0 if absent.
+   void measCursorsChanged(double x1Valid, double x1,
+                           double x2Valid, double x2);
+
+   /// Emitted when the peer widget should clear its measurement cursors.
+   void requestPeerCursorClear();
+
 protected:
    void paintEvent(QPaintEvent* event) override;
    void resizeEvent(QResizeEvent* event) override;
+   void wheelEvent(QWheelEvent* event) override;
    void mousePressEvent(QMouseEvent* event) override;
    void mouseMoveEvent(QMouseEvent* event) override;
+   void mouseReleaseEvent(QMouseEvent* event) override;
    void mouseDoubleClickEvent(QMouseEvent* event) override;
    void leaveEvent(QEvent* event) override;
 
@@ -79,6 +119,9 @@ private:
 
    /// Draw time-age labels along the y-axis.
    void drawTimeLabels(QPainter& painter, const QRect& area) const;
+
+   /// Emit the measCursorsChanged signal with current overlay state.
+   void emitMeasCursorsChanged();
 
    /// Format a duration as a human-readable age string.
    [[nodiscard]] static std::string formatAge(double seconds);
@@ -113,6 +156,16 @@ private:
 
    double _centerFreqHz{0.0};
    double _bandwidthHz{0.0};
+
+   // Current X view range (may differ from full when zoomed/panned)
+   double _viewXStart{0.0};   ///< visible start as fraction of bin range [0, 1]
+   double _viewXEnd{1.0};     ///< visible end as fraction of bin range [0, 1]
+
+   // Pan state tracking
+   bool _panning{false};
+   QPoint _panStartPos;
+   double _panStartXStart{0.0};
+   double _panStartXEnd{0.0};
 
    // Embedded color bar
    ColorBarStrip* _colorBar{nullptr};

@@ -22,6 +22,14 @@ void PlotCursorOverlay::setMargins(int left, int /*right*/, int /*top*/, int bot
 bool PlotCursorOverlay::handleMouseMove(const QPoint& pos, const QRect& plotArea)
 {
    const bool inPlot = plotArea.contains(pos);
+
+   // If the mouse is in this plot, any linked tracking line from the other
+   // widget is stale — clear it to avoid ghosting.
+   if (inPlot && _linkedTrackingX.has_value())
+   {
+      _linkedTrackingX.reset();
+   }
+
    if (inPlot != _cursorInPlot || (inPlot && pos != _cursorPos))
    {
       _cursorInPlot = inPlot;
@@ -78,6 +86,7 @@ bool PlotCursorOverlay::clearCursors()
 
 void PlotCursorOverlay::draw(QPainter& painter, const QRect& plotArea) const
 {
+   drawLinkedCursors(painter, plotArea);
    drawTrackingCrosshair(painter, plotArea);
    drawMeasurementCursors(painter, plotArea);
    drawDeltaReadout(painter, plotArea);
@@ -125,7 +134,7 @@ void PlotCursorOverlay::drawTrackingCrosshair(QPainter& painter,
    }
 
    // X label in bottom margin
-   if (_formatX)
+   if (_formatX && _showXLabels)
    {
       const QString xLabel = _formatX(data.x);
       constexpr int LABEL_WIDTH = 80;
@@ -175,7 +184,7 @@ void PlotCursorOverlay::drawMeasurementCursors(QPainter& painter,
       }
 
       // X-axis label in bottom margin
-      if (_formatX)
+      if (_formatX && _showXLabels)
       {
          const QString xLabel = _formatX(dp.x);
          constexpr int LABEL_WIDTH = 80;
@@ -247,6 +256,71 @@ void PlotCursorOverlay::drawDeltaReadout(QPainter& painter,
 
    font.setBold(false);
    painter.setFont(font);
+}
+
+void PlotCursorOverlay::setLinkedTrackingX(double xData)
+{
+   _linkedTrackingX = xData;
+}
+
+void PlotCursorOverlay::clearLinkedTrackingX()
+{
+   _linkedTrackingX.reset();
+}
+
+void PlotCursorOverlay::setLinkedMeasCursors(std::optional<double> x1,
+                                              std::optional<double> x2)
+{
+   _linkedMeas1X = x1;
+   _linkedMeas2X = x2;
+}
+
+void PlotCursorOverlay::drawLinkedCursors(QPainter& painter,
+                                           const QRect& area) const
+{
+   if (!_dataToPixel)
+   {
+      return;
+   }
+
+   auto drawVerticalLine = [&](double xData, const QColor& color, Qt::PenStyle style)
+   {
+      const DataPoint dp{xData, 0.0};
+      const QPoint pt = _dataToPixel(dp, area);
+      const int cx = std::clamp(pt.x(), area.left(), area.right());
+      painter.setPen(QPen(color, 1, style));
+      painter.drawLine(cx, area.top(), cx, area.bottom());
+
+      // X-axis label in bottom margin (only when axis is visible)
+      if (_formatX && _showXLabels)
+      {
+         QFont font = painter.font();
+         font.setPointSize(10);
+         painter.setFont(font);
+
+         const QColor labelBg(color.red(), color.green(), color.blue(), 180);
+         const QString xLabel = _formatX(xData);
+         constexpr int LABEL_WIDTH = 80;
+         const QRect xRect(cx - (LABEL_WIDTH / 2), area.bottom() + 3,
+                           LABEL_WIDTH, _marginBottom - 5);
+         painter.fillRect(xRect, labelBg);
+         painter.setPen(QColor(255, 255, 255));
+         painter.drawText(xRect, Qt::AlignCenter, xLabel);
+      }
+   };
+
+   if (_linkedTrackingX.has_value())
+   {
+      drawVerticalLine(*_linkedTrackingX, QColor(220, 220, 215, 160), Qt::DashLine);
+   }
+   if (_linkedMeas1X.has_value())
+   {
+      drawVerticalLine(*_linkedMeas1X, QColor(230, 50, 50), Qt::SolidLine);
+   }
+   if (_linkedMeas2X.has_value())
+   {
+      drawVerticalLine(*_linkedMeas2X, QColor(140, 30, 30), Qt::SolidLine);
+   }
 }
 
 } // namespace RealTimeGraphs

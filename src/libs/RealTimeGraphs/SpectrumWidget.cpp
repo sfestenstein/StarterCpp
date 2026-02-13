@@ -179,6 +179,7 @@ void SpectrumWidget::setFrequencyRange(double centerFreqHz, double bandwidthHz)
    _bandwidthHz  = bandwidthHz;
    _viewXStart   = 0.0;
    _viewXEnd     = 1.0;
+   emit xViewChanged(_viewXStart, _viewXEnd);
    update();
 }
 
@@ -194,12 +195,34 @@ void SpectrumWidget::resetView()
    _viewXStart = 0.0;
    _viewXEnd   = 1.0;
    syncColorBar();
+   emit xViewChanged(_viewXStart, _viewXEnd);
+   update();
+}
+
+void SpectrumWidget::setXViewRange(double xStart, double xEnd)
+{
+   if (_viewXStart == xStart && _viewXEnd == xEnd)
+   {
+      return;
+   }
+   _viewXStart = xStart;
+   _viewXEnd   = xEnd;
+   syncColorBar();
    update();
 }
 
 void SpectrumWidget::setColorBarVisible(bool visible)
 {
    _colorBar->setVisible(visible);
+   update();
+}
+
+void SpectrumWidget::setXAxisVisible(bool visible)
+{
+   _xAxisVisible = visible;
+   _cursorOverlay.setMargins(MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP,
+                             visible ? MARGIN_BOTTOM : MARGIN_BOTTOM_HIDDEN);
+   _cursorOverlay.setShowXLabels(visible);
    update();
 }
 
@@ -221,9 +244,10 @@ void SpectrumWidget::setMaxHoldDecayRate(float dbPerSecond)
 
 QRect SpectrumWidget::plotArea() const
 {
+   const int bot = _xAxisVisible ? MARGIN_BOTTOM : MARGIN_BOTTOM_HIDDEN;
    return {MARGIN_LEFT, MARGIN_TOP,
            width() - MARGIN_LEFT - MARGIN_RIGHT,
-           height() - MARGIN_TOP - MARGIN_BOTTOM};
+           height() - MARGIN_TOP - bot};
 }
 
 // ============================================================================
@@ -475,6 +499,11 @@ void SpectrumWidget::drawLabels(QPainter& painter, const QRect& area) const
    }
 
    // X-axis: frequency tick labels + tick marks
+   if (!_xAxisVisible)
+   {
+      return;
+   }
+
    constexpr int X_TICKS = 8;
    const bool hasFreq = (_bandwidthHz > 0.0);
    const double startFreq = _centerFreqHz - (_bandwidthHz / 2.0);
@@ -567,6 +596,7 @@ void SpectrumWidget::wheelEvent(QWheelEvent* event)
    }
 
    syncColorBar();
+   emit xViewChanged(_viewXStart, _viewXEnd);
    update();
    event->accept();
 }
@@ -577,8 +607,10 @@ void SpectrumWidget::mousePressEvent(QMouseEvent* event)
    {
       if (_cursorOverlay.clearCursors())
       {
+         emitMeasCursorsChanged();
          update();
       }
+      emit requestPeerCursorClear();
       event->accept();
       return;
    }
@@ -667,6 +699,7 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
       }
 
       syncColorBar();
+      emit xViewChanged(_viewXStart, _viewXEnd);
       update();
       event->accept();
    }
@@ -676,6 +709,12 @@ void SpectrumWidget::mouseMoveEvent(QMouseEvent* event)
       const QRect area = plotArea();
       if (_cursorOverlay.handleMouseMove(event->pos(), area))
       {
+         // Emit tracking X in data-space
+         const double xFrac = static_cast<double>(event->pos().x() - area.left())
+                            / static_cast<double>(area.width());
+         const double dataX = _viewXStart +
+                            (std::clamp(xFrac, 0.0, 1.0) * (_viewXEnd - _viewXStart));
+         emit trackingCursorXChanged(dataX);
          update();
       }
       QWidget::mouseMoveEvent(event);
@@ -704,6 +743,8 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* event)
    {
       if (_cursorOverlay.placeCursor1(event->pos(), area))
       {
+         emit requestPeerCursorClear();
+         emitMeasCursorsChanged();
          update();
       }
       event->accept();
@@ -712,6 +753,8 @@ void SpectrumWidget::mouseDoubleClickEvent(QMouseEvent* event)
    {
       if (_cursorOverlay.placeCursor2(event->pos(), area))
       {
+         emit requestPeerCursorClear();
+         emitMeasCursorsChanged();
          update();
       }
       event->accept();
@@ -731,6 +774,7 @@ void SpectrumWidget::leaveEvent(QEvent* event)
 {
    if (_cursorOverlay.handleLeave())
    {
+      emit trackingCursorLeft();
       update();
    }
    QWidget::leaveEvent(event);
@@ -773,6 +817,55 @@ float SpectrumWidget::toNormalised(float value) const
    auto viewMax = static_cast<float>(_viewMaxDb);
    const float norm = (db - viewMin) / (viewMax - viewMin);
    return std::clamp(norm, 0.0F, 1.0F);
+}
+
+void SpectrumWidget::setLinkedCursorX(double xData)
+{
+   _cursorOverlay.setLinkedTrackingX(xData);
+   update();
+}
+
+void SpectrumWidget::clearLinkedCursorX()
+{
+   _cursorOverlay.clearLinkedTrackingX();
+   update();
+}
+
+void SpectrumWidget::setLinkedMeasCursors(double x1Valid, double x1,
+                                          double x2Valid, double x2)
+{
+   std::optional<double> opt1;
+   std::optional<double> opt2;
+   if (x1Valid > 0.5)
+   {
+      opt1 = x1;
+   }
+   if (x2Valid > 0.5)
+   {
+      opt2 = x2;
+   }
+   _cursorOverlay.setLinkedMeasCursors(opt1, opt2);
+   update();
+}
+
+void SpectrumWidget::emitMeasCursorsChanged()
+{
+   const auto& c1 = _cursorOverlay.measCursor1();
+   const auto& c2 = _cursorOverlay.measCursor2();
+   emit measCursorsChanged(
+      c1.has_value() ? 1.0 : 0.0, c1.has_value() ? c1->x : 0.0,
+      c2.has_value() ? 1.0 : 0.0, c2.has_value() ? c2->x : 0.0);
+}
+
+void SpectrumWidget::clearMeasCursors()
+{
+   if (_cursorOverlay.clearCursors())
+   {
+      emitMeasCursorsChanged();
+      update();
+   }
+   _cursorOverlay.setLinkedMeasCursors(std::nullopt, std::nullopt);
+   update();
 }
 
 } // namespace RealTimeGraphs
