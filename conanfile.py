@@ -67,8 +67,10 @@ class StarterCppConan(ConanFile):
          self.options.rm_safe("fPIC")
 
       # Disable systemd integration in czmq (option name in ConanCenter recipe is `with_systemd`).
+      # Only set on Linux/FreeBSD where the option exists; on macOS the option is not available.
       # Note: zyre/2.0.1 still depends on libsystemd on Linux/FreeBSD regardless; see override above.
-      self.options["czmq/*"].with_systemd = False
+      if self.settings.os in ["Linux", "FreeBSD"]:
+         self.options["czmq/*"].with_systemd = False
 
    def layout(self):
       # Use standard CMake layout

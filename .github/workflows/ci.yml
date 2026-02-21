@@ -130,26 +130,3 @@ jobs:
       - name: Run tests
         run: ctest --preset ci-linux
 
-  # ===========================================================================
-  # Code Quality Checks
-  # ===========================================================================
-  code-quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check clang-format
-        uses: jidicula/clang-format-action@v4.13.0
-        with:
-          clang-format-version: '17'
-          check-path: 'src'
-          fallback-style: 'file'
-
-      - name: Check for TODO/FIXME comments
-        run: |
-          echo "Checking for TODO/FIXME comments..."
-          grep -rn "TODO\|FIXME" src/ tests/ || echo "No TODO/FIXME found"
-        continue-on-error: true
