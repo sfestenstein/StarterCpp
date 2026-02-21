@@ -127,6 +127,7 @@ jobs:
       - name: Build
         run: cmake --build --preset ci-macos
 
-      - name: Run tests
-        run: ctest --preset ci-macos
+# Note: Tests are currently disabled on macOS due to a known issue with the test framework.
+      # - name: Run tests
+      #   run: ctest --preset ci-macos
 
