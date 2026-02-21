@@ -122,11 +122,11 @@ jobs:
             -s compiler.cppstd=20
 
       - name: Configure CMake
-        run: cmake --preset ci-linux
+        run: cmake --preset ci-macos
 
       - name: Build
-        run: cmake --build --preset ci-linux
+        run: cmake --build --preset ci-macos
 
       - name: Run tests
-        run: ctest --preset ci-linux
+        run: ctest --preset ci-macos
 
