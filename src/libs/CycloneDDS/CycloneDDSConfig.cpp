@@ -34,10 +34,10 @@ void CycloneDDSConfig::defaultInitialize()
 
    // --- Build the config --------------------------------------------------
    _config = DDSTopicConfig({
-      {.topicName = "SensorTopic",
+      {.topicName = std::string(SENSOR_TOPIC),
        .writerQos = sensorWriterQos,
        .readerQos = sensorReaderQos},
-      {.topicName = "TrackTopic",
+      {.topicName = std::string(TRACK_TOPIC),
        .writerQos = trackWriterQos,
        .readerQos = trackReaderQos},
    });

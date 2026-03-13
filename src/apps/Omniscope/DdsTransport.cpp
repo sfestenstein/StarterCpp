@@ -146,8 +146,8 @@ DdsTransport::~DdsTransport()
    // Stop all active subscriptions
    for (const auto &topic : _impl->activeTopics)
    {
-      if (topic == "SensorTopic") _impl->sensorSub->stop();
-      else if (topic == "TrackTopic") _impl->trackSub->stop();
+      if (topic == CycloneDDS::SENSOR_TOPIC) _impl->sensorSub->stop();
+      else if (topic == CycloneDDS::TRACK_TOPIC) _impl->trackSub->stop();
    }
 }
 
@@ -158,7 +158,8 @@ std::string DdsTransport::name() const
 
 std::vector<std::string> DdsTransport::topicNames() const
 {
-   return {"SensorTopic", "TrackTopic"};
+   return {std::string(CycloneDDS::SENSOR_TOPIC),
+           std::string(CycloneDDS::TRACK_TOPIC)};
 }
 
 void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
@@ -166,20 +167,20 @@ void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
    std::lock_guard lock(_impl->mutex);
    if (_impl->activeTopics.count(topic) > 0) return;
 
-   if (topic == "SensorTopic" && _impl->sensorSub)
+   if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorSub)
    {
-      _impl->sensorSub->subscribe("SensorTopic",
+      _impl->sensorSub->subscribe(std::string(CycloneDDS::SENSOR_TOPIC),
          [callback](const dds_messages::SensorReading &msg) {
-            callback("SensorTopic", toJson(msg).dump());
+            callback(std::string(CycloneDDS::SENSOR_TOPIC), toJson(msg).dump());
          });
       _impl->sensorSub->start();
       _impl->activeTopics.insert(topic);
    }
-   else if (topic == "TrackTopic" && _impl->trackSub)
+   else if (topic == CycloneDDS::TRACK_TOPIC && _impl->trackSub)
    {
-      _impl->trackSub->subscribe("TrackTopic",
+      _impl->trackSub->subscribe(std::string(CycloneDDS::TRACK_TOPIC),
          [callback](const dds_messages::TrackUpdate &msg) {
-            callback("TrackTopic", toJson(msg).dump());
+            callback(std::string(CycloneDDS::TRACK_TOPIC), toJson(msg).dump());
          });
       _impl->trackSub->start();
       _impl->activeTopics.insert(topic);
@@ -193,12 +194,12 @@ void DdsTransport::unsubscribe(const std::string &topic)
    std::lock_guard lock(_impl->mutex);
    if (_impl->activeTopics.count(topic) == 0) return;
 
-   if (topic == "SensorTopic" && _impl->sensorSub)
+   if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorSub)
    {
       _impl->sensorSub->stop();
       _impl->activeTopics.erase(topic);
    }
-   else if (topic == "TrackTopic" && _impl->trackSub)
+   else if (topic == CycloneDDS::TRACK_TOPIC && _impl->trackSub)
    {
       _impl->trackSub->stop();
       _impl->activeTopics.erase(topic);
@@ -219,13 +220,15 @@ void DdsTransport::publishFromJson(const std::string &topic,
    auto data = crow::json::load(jsonData);
    if (!data) return;
 
-   if (topic == "SensorTopic" && _impl->sensorPub)
+   if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorPub)
    {
-      _impl->sensorPub->publish("SensorTopic", sensorFromJson(data));
+      _impl->sensorPub->publish(std::string(CycloneDDS::SENSOR_TOPIC),
+                                sensorFromJson(data));
    }
-   else if (topic == "TrackTopic" && _impl->trackPub)
+   else if (topic == CycloneDDS::TRACK_TOPIC && _impl->trackPub)
    {
-      _impl->trackPub->publish("TrackTopic", trackFromJson(data));
+      _impl->trackPub->publish(std::string(CycloneDDS::TRACK_TOPIC),
+                               trackFromJson(data));
    }
 }
 

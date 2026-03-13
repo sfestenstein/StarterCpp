@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
       sensor.longitude(-122.4194);
       sensor.altitude(10.0);
 
-      sensorPub.publish("SensorTopic", sensor);
+      sensorPub.publish(std::string(CycloneDDS::SENSOR_TOPIC), sensor);
 
       // Publish a track update
       dds_messages::TrackUpdate track;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
       track.update_number(sequence);
       track.confidence(0.95);
 
-      trackPub.publish("TrackTopic", track);
+      trackPub.publish(std::string(CycloneDDS::TRACK_TOPIC), track);
 
       ++sequence;
       if (sequence % 100 == 0)

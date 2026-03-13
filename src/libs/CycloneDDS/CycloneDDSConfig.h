@@ -4,8 +4,14 @@
 // Project headers
 #include "CycloneDDS/DDSTopicConfig.h"
 
+#include <string_view>
+
 namespace CycloneDDS
 {
+
+// Canonical topic name constants — use these instead of string literals.
+inline constexpr std::string_view SENSOR_TOPIC = "SensorTopic";
+inline constexpr std::string_view TRACK_TOPIC  = "TrackTopic";
 
 /**
  * @brief Provides a pre-built DDSTopicConfig with sensible default QoS

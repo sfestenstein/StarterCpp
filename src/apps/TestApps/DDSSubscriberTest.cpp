@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
    // Sensor subscriber
    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sensorSub(domainId, config, "SensorSubscriber");
-   sensorSub.subscribe("SensorTopic",
+   sensorSub.subscribe(std::string(CycloneDDS::SENSOR_TOPIC),
       [](const dds_messages::SensorReading &msg)
       {
          GPINFO("Sensor [{}]: value={:.2f} {} (quality={})",
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
    // Track subscriber
    CycloneDDS::DDSSubscriber<dds_messages::TrackUpdate> trackSub(domainId, config, "TrackSubscriber");
-   trackSub.subscribe("TrackTopic",
+   trackSub.subscribe(std::string(CycloneDDS::TRACK_TOPIC),
       [](const dds_messages::TrackUpdate &msg)
       {
          GPINFO("Track [{}]: lat={:.4f} lon={:.4f} alt={:.0f} hdg={:.1f} spd={:.1f}",
