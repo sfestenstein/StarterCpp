@@ -17,23 +17,25 @@ StarterCpp is a C++20 starter project template using:
 StarterCpp/
 ├── src/
 │   ├── apps/               # Executables
-│   │   ├── ZyrePublisherTest.cpp
-│   │   ├── ZyreSubscriberTest.cpp
-│   │   ├── HighBandwidthPublisherTester.cpp
-│   │   ├── HighBandwidthSubscriberTester.cpp
-│   │   ├── DDSPublisherTest.cpp
-│   │   ├── DDSSubscriberTest.cpp
-│   │   ├── Vita49RoundTripTest.cpp
-│   │   ├── Vita49PerfBenchmark.cpp
-│   │   ├── Vita49FileCodec.cpp
-│   │   └── Omniscope/          # Web-based IPC traffic inspector
-│   │       ├── ITransport.h          # Abstract transport interface
-│   │       ├── DdsTransport.h/.cpp   # DDS transport (pImpl)
-│   │       ├── PlaybackEngine.h/.cpp # Recording playback engine
-│   │       ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
-│   │       ├── CrowCompat.h          # C++20 atomic shim for Crow
-│   │       ├── main.cpp              # Entry point
-│   │       └── web/monitor.html      # Embedded single-page UI
+│   │   ├── Omniscope/          # Web-based IPC traffic inspector
+│   │   │   ├── ITransport.h          # Abstract transport interface
+│   │   │   ├── DdsTransport.h/.cpp   # DDS transport (pImpl)
+│   │   │   ├── PlaybackEngine.h/.cpp # Recording playback engine
+│   │   │   ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
+│   │   │   ├── CrowCompat.h          # C++20 atomic shim for Crow
+│   │   │   ├── main.cpp              # Entry point
+│   │   │   └── web/monitor.html      # Embedded single-page UI
+│   │   ├── TestApps/           # Test/demo executables
+│   │   │   ├── ZyrePublisherTest.cpp
+│   │   │   ├── ZyreSubscriberTest.cpp
+│   │   │   ├── HighBandwidthPublisherTester.cpp
+│   │   │   ├── HighBandwidthSubscriberTester.cpp
+│   │   │   ├── DDSPublisherTest.cpp
+│   │   │   ├── DDSSubscriberTest.cpp
+│   │   │   └── Vita49RoundTripTest.cpp
+│   │   └── Tools/              # Utility/benchmark executables
+│   │       ├── Vita49PerfBenchmark.cpp
+│   │       └── Vita49FileCodec.cpp
 │   └── libs/               # Libraries
 │       ├── CommonUtils/    # Common utility library
 │       │   ├── GeneralLogger.h/.cpp  # Async spdlog wrapper with macros

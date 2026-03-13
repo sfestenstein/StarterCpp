@@ -166,7 +166,7 @@ The Vita49_2 library implements the VITA 49.2 standard for signal data and conte
 
 ### Applications
 
-#### ZyrePublisher (`src/apps/ZyrePublisherTest.cpp`)
+#### ZyrePublisher (`src/apps/TestApps/ZyrePublisherTest.cpp`)
 
 Demonstrates:
 - Zyre peer-to-peer publishing
@@ -174,7 +174,7 @@ Demonstrates:
 - Periodic message publishing
 - GeneralLogger usage
 
-#### ZyreSubscriber (`src/apps/ZyreSubscriberTest.cpp`)
+#### ZyreSubscriber (`src/apps/TestApps/ZyreSubscriberTest.cpp`)
 
 Demonstrates:
 - Zyre peer-to-peer subscription
@@ -182,28 +182,28 @@ Demonstrates:
 - Topic-based message handling
 - Formatted logging with spdlog
 
-#### HighBandwidthPublisher (`src/apps/HighBandwidthPublisherTester.cpp`)
+#### HighBandwidthPublisher (`src/apps/TestApps/HighBandwidthPublisherTester.cpp`)
 
 Demonstrates:
 - High-frequency UDP multicast publishing
 - Large message fragmentation
 - Sensor data streaming
 
-#### HighBandwidthSubscriber (`src/apps/HighBandwidthSubscriberTester.cpp`)
+#### HighBandwidthSubscriber (`src/apps/TestApps/HighBandwidthSubscriberTester.cpp`)
 
 Demonstrates:
 - UDP multicast subscription
 - Fragment reassembly
 - High-throughput message reception
 
-#### DDSPublisher (`src/apps/DDSPublisherTest.cpp`)
+#### DDSPublisher (`src/apps/TestApps/DDSPublisherTest.cpp`)
 
 Demonstrates:
 - Eclipse Cyclone DDS topic-based publishing
 - DDSTopicConfig with Reliable and BestEffort QoS
 - Publishing IDL-defined SensorReading and TrackUpdate messages
 
-#### DDSSubscriber (`src/apps/DDSSubscriberTest.cpp`)
+#### DDSSubscriber (`src/apps/TestApps/DDSSubscriberTest.cpp`)
 
 Demonstrates:
 - Eclipse Cyclone DDS topic-based subscription
@@ -226,18 +226,18 @@ Usage:
 # Open http://localhost:8080
 ```
 
-#### Vita49RoundTripTest (`src/apps/Vita49RoundTripTest.cpp`)
+#### Vita49RoundTripTest (`src/apps/TestApps/Vita49RoundTripTest.cpp`)
 
 Demonstrates:
 - Round-trip encode/decode of VITA 49.2 signal data packets
 - Verification of codec correctness
 
-#### Vita49PerfBenchmark (`src/apps/Vita49PerfBenchmark.cpp`)
+#### Vita49PerfBenchmark (`src/apps/Tools/Vita49PerfBenchmark.cpp`)
 
 Demonstrates:
 - Performance benchmarking of VITA 49.2 codec operations
 
-#### Vita49FileCodec (`src/apps/Vita49FileCodec.cpp`)
+#### Vita49FileCodec (`src/apps/Tools/Vita49FileCodec.cpp`)
 
 Demonstrates:
 - File-based VITA 49.2 packet generation, inspection, and round-trip testing
