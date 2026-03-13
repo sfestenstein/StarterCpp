@@ -9,7 +9,7 @@ StarterCpp is a C++20 starter project template using:
 - **Package Manager**: Conan 2.0
 - **Compiler**: GCC 13+ or Clang 15+ (Linux/macOS)
 - **Testing**: Google Test
-- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre
+- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre, Eclipse Cyclone DDS
 
 ## Project Structure
 
@@ -20,27 +20,49 @@ StarterCpp/
 │   │   ├── ZyrePublisherTest.cpp
 │   │   ├── ZyreSubscriberTest.cpp
 │   │   ├── HighBandwidthPublisherTester.cpp
-│   │   └── HighBandwidthSubscriberTester.cpp
+│   │   ├── HighBandwidthSubscriberTester.cpp
+│   │   ├── DDSPublisherTest.cpp
+│   │   ├── DDSSubscriberTest.cpp
+│   │   ├── Vita49RoundTripTest.cpp
+│   │   ├── Vita49PerfBenchmark.cpp
+│   │   └── Vita49FileCodec.cpp
 │   └── libs/               # Libraries
 │       ├── CommonUtils/    # Common utility library
-│       │   ├── GeneralLogger.h   # Async spdlog wrapper with macros
-│       │   ├── GeneralLogger.cpp
-│       │   ├── Timer.h           # Basic timer class
-│       │   ├── Timer.cpp
-│       │   ├── SnoozableTimer.h  # Timer with snooze capability
-│       │   ├── SnoozableTimer.cpp
-│       │   └── DataHandler.h     # Data handling (header-only)
-│       ├── PubSub/         # Publish-Subscribe library
-│       │   ├── ZyreNode.h        # Base Zyre node class
-│       │   ├── ZyrePublisher.h   # Zyre-based publisher
-│       │   ├── ZyreSubscriber.h  # Zyre-based subscriber
-│       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
-│       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
+│       │   ├── GeneralLogger.h/.cpp  # Async spdlog wrapper with macros
+│       │   ├── Timer.h/.cpp          # Basic timer class
+│       │   ├── SnoozableTimer.h/.cpp # Timer with snooze capability
+│       │   └── DataHandler.h         # Data handling (header-only)
+│       ├── PubSub/         # Publish-Subscribe library (Zyre + UDP multicast)
+│       │   ├── ZyreNode.h/.cpp            # Base Zyre node class
+│       │   ├── ZyrePublisher.h/.cpp       # Zyre-based publisher
+│       │   ├── ZyreSubscriber.h/.cpp      # Zyre-based subscriber
+│       │   ├── HighBandwidthPublisher.h/.cpp   # UDP multicast publisher
+│       │   └── HighBandwidthSubscriber.h/.cpp  # UDP multicast subscriber
+│       ├── CycloneDDS/     # DDS pub/sub library (Eclipse Cyclone DDS)
+│       │   ├── DDSTopicConfig.h       # Centralized topic/QoS registry
+│       │   ├── DDSPublisher.h         # Template DDS publisher (header-only)
+│       │   ├── DDSSubscriber.h        # Template DDS subscriber (header-only)
+│       │   └── idl/                   # IDL message definitions
+│       │       ├── SensorData.idl
+│       │       ├── Command.idl
+│       │       └── TrackData.idl
+│       ├── Vita49_2/       # VITA 49.2 signal data packet codec
+│       │   ├── PacketHeader.h/.cpp
+│       │   ├── SignalDataPacket.h/.cpp
+│       │   ├── ContextPacket.h/.cpp
+│       │   ├── Vita49Codec.h/.cpp
+│       │   ├── Vita49Types.h
+│       │   └── ByteSwap.h
 │       └── proto/          # Protocol buffer library
 │           └── proto-messages/ # .proto source files
+│               ├── sensor_data.proto
+│               ├── commands.proto
+│               └── configuration.proto
 ├── tests/                  # Unit tests
 │   ├── CommonUtilsTests/   # Tests for CommonUtils library
-│   └── PubSubTests/        # Tests for PubSub library
+│   ├── PubSubTests/        # Tests for PubSub library
+│   ├── DDSTests/           # Tests for CycloneDDS library
+│   └── Vita49_2Tests/      # Tests for Vita49_2 library
 ├── docs/                   # Documentation
 └── .github/                # CI/CD and this file
 ```
@@ -121,6 +143,26 @@ private:
 3. Create `tests/PubSubTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
 4. Re-run CMake configure to pick up new files
 
+### Adding a New CycloneDDS Class
+
+1. Create `src/libs/CycloneDDS/NewClass.h` (header-only; CycloneDDSLib is INTERFACE)
+2. Create `tests/DDSTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
+3. Re-run CMake configure to pick up new files
+
+### Adding a New DDS IDL Message
+
+1. Create or edit file in `src/libs/CycloneDDS/idl/` directory
+2. IDL files are auto-discovered via glob in `src/libs/CycloneDDS/CMakeLists.txt`
+3. Include generated header as `#include "MessageName.hpp"`
+4. Re-run CMake configure to pick up new files
+
+### Adding a New Vita49_2 Class
+
+1. Create `src/libs/Vita49_2/NewClass.h`
+2. Create `src/libs/Vita49_2/NewClass.cpp` (auto-discovered via `file(GLOB)`)
+3. Create `tests/Vita49_2Tests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
+4. Re-run CMake configure to pick up new files
+
 ### Adding a New Proto Message
 
 1. Create or edit file in `src/libs/proto/proto-messages/` directory
@@ -133,7 +175,7 @@ private:
 2. Add to `src/apps/CMakeLists.txt`:
    ```cmake
    add_executable(new_app new_app_main.cpp)
-   target_link_libraries(new_app PRIVATE StarterCpp::common_utils ...)
+   target_link_libraries(new_app PRIVATE CommonUtils ...)
    ```
 
 ## Build Commands
@@ -161,12 +203,22 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 - `CommonUtils` - CommonUtils shared library
 - `PubSubLib` - PubSub shared library (Zyre and HighBandwidth messaging)
 - `ProtoLib` - Protobuf library (alias: `StarterCpp::proto`)
+- `CycloneDDSLib` - DDS library (INTERFACE, header-only wrappers + generated IDL types)
+- `DDSMessages` - Generated IDL C++ types (linked by CycloneDDSLib)
+- `Vita49_2` - VITA 49.2 signal data packet codec shared library
 - `ZyrePublisher` - Zyre publisher test application
 - `ZyreSubscriber` - Zyre subscriber test application
 - `HighBandwidthPublisher` - UDP multicast publisher test application
 - `HighBandwidthSubscriber` - UDP multicast subscriber test application
+- `DDSPublisher` - DDS publisher test application
+- `DDSSubscriber` - DDS subscriber test application
+- `Vita49RoundTripTest` - VITA 49.2 round-trip test application
+- `Vita49PerfBenchmark` - VITA 49.2 performance benchmark application
+- `Vita49FileCodec` - VITA 49.2 file codec application
 - `CommonUtilsTests` - CommonUtils unit tests
 - `PubSubTests` - PubSub unit tests
+- `DDSTests` - DDS unit tests
+- `Vita49_2Tests` - VITA 49.2 unit tests
 - `CommonUtilsCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
 - `PubSubCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
 
@@ -181,6 +233,9 @@ When suggesting code, these libraries are available:
 | ZeroMQ | `<zmq.hpp>` | `zmq::context_t`, `zmq::socket_t` |
 | CZMQ | `<czmq.h>` | `zsock_t`, `zactor_t` |
 | Zyre | `<zyre.h>` | `zyre_t` |
+| Cyclone DDS | `<dds/dds.hpp>` | `dds::domain::DomainParticipant`, `dds::pub::DataWriter` |
+| CycloneDDS wrappers | `"CycloneDDS/DDSPublisher.h"` | `CycloneDDS::DDSPublisher<T>`, `CycloneDDS::DDSSubscriber<T>` |
+| CycloneDDS config | `"CycloneDDS/DDSTopicConfig.h"` | `CycloneDDS::DDSTopicConfig`, `CycloneDDS::TopicEntry` |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
 
 ## Testing Patterns

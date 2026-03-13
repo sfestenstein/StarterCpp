@@ -45,10 +45,26 @@ add_executable(Vita49FileCodec Vita49FileCodec.cpp)
 target_link_libraries(Vita49FileCodec
    PRIVATE Vita49_2 CommonUtils )
 
+# IPC Monitor (web-based traffic inspector, supports multiple transports)
+add_subdirectory(IPCMonitor)
+
+# DDS Publisher Test
+add_executable(DDSPublisher DDSPublisherTest.cpp)
+
+target_link_libraries(DDSPublisher
+   PRIVATE CycloneDDSLib CommonUtils )
+
+# DDS Subscriber Test
+add_executable(DDSSubscriber DDSSubscriberTest.cpp)
+
+target_link_libraries(DDSSubscriber
+   PRIVATE CycloneDDSLib CommonUtils )
+
 # Set properties
 set_target_properties(
    ZyrePublisher ZyreSubscriber HighBandwidthSubscriber HighBandwidthPublisher
    Vita49RoundTripTest Vita49PerfBenchmark Vita49FileCodec
+   DDSPublisher DDSSubscriber
    PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

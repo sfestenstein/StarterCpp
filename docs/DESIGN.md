@@ -4,40 +4,65 @@ This document describes the architecture and design decisions of the StarterCpp 
 
 ## Overview
 
-StarterCpp is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns.
+StarterCpp is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
 
 ## Architecture
 
 ### Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Applications                                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
-│  │ ZyrePublisher   │  │ ZyreSubscriber  │  │ HighBandwidth Pub/Sub       │  │
-│  │ (Zyre P2P)      │  │ (Zyre P2P)      │  │ (UDP Multicast)             │  │
-│  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘  │
-│           │                    │                          │                  │
-├───────────┴────────────────────┴──────────────────────────┴──────────────────┤
-│                              Libraries                                        │
-│  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                         PubSub Library                                   │ │
-│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐  │ │
-│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │  │ │
-│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │  │ │
-│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-│  ┌─────────────────┐                    ┌─────────────────┐                  │
-│  │   Proto Lib     │                    │  CommonUtils    │                  │
-│  │   (protobuf)    │                    │  (utilities)    │                  │
-│  └─────────────────┘                    └─────────────────┘                  │
-│                                                                              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                         External Dependencies                                │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              Applications                                     │
+│  ┌──────────────┐ ┌──────────────┐ ┌───────────────┐ ┌───────────────────┐   │
+│  │ ZyrePublisher│ │ZyreSubscriber│ │ HighBandwidth │ │  DDS Publisher /  │   │
+│  │              │ │              │ │   Pub / Sub   │ │  DDS Subscriber   │   │
+│  └──────┬───────┘ └──────┬───────┘ └──────┬────────┘ └────────┬──────────┘   │
+│         │                │                │                   │              │
+│  ┌──────────────────┐  ┌────────────────────┐  ┌─────────────────────────┐   │
+│  │ Vita49RoundTrip  │  │ Vita49PerfBenchmark│  │    Vita49FileCodec     │   │
+│  └────────┬─────────┘  └─────────┬──────────┘  └───────────┬─────────────┘   │
+│           │                      │                         │                 │
+├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
+│                                Libraries                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │                          PubSub Library                                  │  │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐  │  │
+│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │  │  │
+│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │  │  │
+│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │                        CycloneDDS Library (INTERFACE)                     │  │
+│  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐    │  │
+│  │  │ DDSTopicConfig │  │ DDSPublisher<T>│  │ DDSSubscriber<T>        │    │  │
+│  │  │ (QoS registry) │  │ (header-only)  │  │ (header-only, polling)  │    │  │
+│  │  └────────────────┘  └────────────────┘  └─────────────────────────┘    │  │
+│  │  ┌────────────────────────────────────────┐                              │  │
+│  │  │ DDSMessages (IDL-generated C++ types)  │                              │  │
+│  │  └────────────────────────────────────────┘                              │  │
+│  └─────────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │                        Vita49_2 Library                                   │  │
+│  │  ┌──────────────┐  ┌──────────────────┐  ┌─────────────────────────┐    │  │
+│  │  │ PacketHeader │  │ SignalDataPacket │  │ ContextPacket           │    │  │
+│  │  │              │  │                  │  │                         │    │  │
+│  │  └──────────────┘  └──────────────────┘  └─────────────────────────┘    │  │
+│  │  ┌──────────────┐  ┌──────────────────┐                                  │  │
+│  │  │ Vita49Codec  │  │ ByteSwap        │                                  │  │
+│  │  └──────────────┘  └──────────────────┘                                  │  │
+│  └─────────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────┐                    ┌─────────────────┐                   │
+│  │   Proto Lib     │                    │  CommonUtils    │                   │
+│  │   (protobuf)    │                    │  (utilities)    │                   │
+│  └─────────────────┘                    └─────────────────┘                   │
+│                                                                               │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                          External Dependencies                                │
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
-│  │ spdlog │ │protobuf│ │ ZeroMQ │ │ cppzmq │ │  CZMQ  │ │  Zyre  │          │
+│  │ spdlog │ │protobuf│ │ ZeroMQ │ │  CZMQ  │ │  Zyre  │ │Cyclone │          │
+│  │        │ │        │ │ cppzmq │ │        │ │        │ │  DDS   │          │
 │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
-└──────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Libraries
@@ -110,6 +135,29 @@ The protocol buffer library compiles `.proto` files from `src/libs/proto/proto-m
 - **commands.proto**: Command/response pattern for RPC
 - **configuration.proto**: Application configuration structures
 
+#### CycloneDDS Library (`src/libs/CycloneDDS/`)
+
+The CycloneDDS library provides topic-based DDS publish-subscribe via Eclipse Cyclone DDS. All wrapper classes are header-only; the CMake target (`CycloneDDSLib`) is an INTERFACE library.
+
+- **DDSTopicConfig**: Central registry mapping topic names to `DataWriterQos` and `DataReaderQos`, guaranteeing RxO (Request-vs-Offered) compatibility between publishers and subscribers.
+
+- **DDSPublisher\<T\>**: Template publisher that lazily creates `DataWriter` instances per topic. QoS is looked up from `DDSTopicConfig` automatically.
+
+- **DDSSubscriber\<T\>**: Template subscriber with a background polling thread. Subscribes to topics with user callbacks; reader QoS is looked up from `DDSTopicConfig`.
+
+- **DDSMessages**: IDL-generated C++ types from `idl/` directory (SensorData, Command, TrackData), compiled via `IDLCXX_GENERATE()`.
+
+#### Vita49_2 Library (`src/libs/Vita49_2/`)
+
+The Vita49_2 library implements the VITA 49.2 standard for signal data and context packets:
+
+- **PacketHeader**: Parses and serializes VITA 49 packet headers (packet type, class/stream identifiers, size)
+- **SignalDataPacket**: Signal data packet codec (IF data, extension data)
+- **ContextPacket**: Context packet codec (metadata about signal acquisition parameters)
+- **Vita49Codec**: High-level codec facade for encoding/decoding complete VITA 49 packets
+- **Vita49Types**: Common type definitions and enumerations for the VITA 49 standard
+- **ByteSwap**: Byte-order utilities for network/host conversion
+
 ### Applications
 
 #### ZyrePublisher (`src/apps/ZyrePublisherTest.cpp`)
@@ -141,6 +189,36 @@ Demonstrates:
 - UDP multicast subscription
 - Fragment reassembly
 - High-throughput message reception
+
+#### DDSPublisher (`src/apps/DDSPublisherTest.cpp`)
+
+Demonstrates:
+- Eclipse Cyclone DDS topic-based publishing
+- DDSTopicConfig with Reliable and BestEffort QoS
+- Publishing IDL-defined SensorReading and TrackUpdate messages
+
+#### DDSSubscriber (`src/apps/DDSSubscriberTest.cpp`)
+
+Demonstrates:
+- Eclipse Cyclone DDS topic-based subscription
+- Shared DDSTopicConfig for QoS alignment with publisher
+- Callback-based message handling with background polling
+
+#### Vita49RoundTripTest (`src/apps/Vita49RoundTripTest.cpp`)
+
+Demonstrates:
+- Round-trip encode/decode of VITA 49.2 signal data packets
+- Verification of codec correctness
+
+#### Vita49PerfBenchmark (`src/apps/Vita49PerfBenchmark.cpp`)
+
+Demonstrates:
+- Performance benchmarking of VITA 49.2 codec operations
+
+#### Vita49FileCodec (`src/apps/Vita49FileCodec.cpp`)
+
+Demonstrates:
+- File-based VITA 49.2 packet generation, inspection, and round-trip testing
 
 ## Design Decisions
 

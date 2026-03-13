@@ -11,19 +11,9 @@ This document provides detailed instructions for building the StarterCpp project
 - **Conan 2.0+**: `pip install conan`
 - **Ninja** (recommended): [Download](https://ninja-build.org/)
 
-### Windows (MinGW) (Not supported, conan+mingw+zmq doesn't build quite right!)
+### Windows (MinGW)
 
-1. **Install MSYS2**: [Download](https://www.msys2.org/)
-
-2. **Install MinGW-w64 toolchain **:
-   ```bash
-   pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
-   ```
-
-3. **Add to PATH**:
-   ```
-   C:\msys64\mingw64\bin
-   ```
+> **Not supported.** Conan + MinGW + ZMQ does not currently build correctly.
 
 ### Linux (Ubuntu/Debian)
 
@@ -69,18 +59,6 @@ This creates a default profile at `~/.conan2/profiles/default`.
 conan profile show
 ```
 
-For MinGW on Windows, the profile should show:
-```
-[settings]
-arch=x86_64
-build_type=Release
-compiler=gcc
-compiler.cppstd=gnu17
-compiler.libcxx=libstdc++11
-compiler.version=13
-os=Windows
-```
-
 ## Build Configurations
 
 ### Debug Build (Recommended for Development)
@@ -113,10 +91,11 @@ cmake --preset coverage
 cmake --build --preset coverage
 
 # Run tests and generate coverage
-cmake --build --preset coverage --target coverage
+ctest --preset coverage
+cmake --build --preset coverage --target CommonUtilsCoverage
 
 # View report
-# Open build/coverage/coverage_report/index.html
+# Open build/coverage/CommonUtilsCoverage/index.html
 ```
 
 ## Build Options
@@ -171,14 +150,23 @@ ctest --output-on-failure
 After building:
 
 ```bash
-# Start subscriber first (in terminal 1)
-./build/debug/bin/subscriber
+# Zyre-based pub/sub (peer-to-peer discovery)
+./build/debug/bin/ZyreSubscriber  # In terminal 1
+./build/debug/bin/ZyrePublisher   # In terminal 2
 
-# Start publisher (in terminal 2)
-./build/debug/bin/publisher
+# High-bandwidth UDP multicast pub/sub
+./build/debug/bin/HighBandwidthSubscriber  # In terminal 1
+./build/debug/bin/HighBandwidthPublisher   # In terminal 2
+
+# DDS pub/sub (Eclipse Cyclone DDS)
+./build/debug/bin/DDSSubscriber  # In terminal 1
+./build/debug/bin/DDSPublisher   # In terminal 2
+
+# VITA 49.2 utilities
+./build/debug/bin/Vita49RoundTripTest
+./build/debug/bin/Vita49PerfBenchmark
+./build/debug/bin/Vita49FileCodec
 ```
-
-You should see sensor data messages being published every second and received by the subscriber.
 
 ## Troubleshooting
 

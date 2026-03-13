@@ -1,0 +1,352 @@
+#include "IPCMonitorApp.h"
+
+#include "CommonUtils/GeneralLogger.h"
+#include "CrowCompat.h"
+
+#include <atomic>
+#include <chrono>
+#include <csignal>
+#include <fstream>
+#include <mutex>
+#include <unordered_set>
+
+// ============================================================================
+//  Embedded web UI
+// ============================================================================
+
+static const char *MONITOR_HTML =
+#include "web/monitor.html.inc"
+;
+
+// ============================================================================
+//  Global stop signal
+// ============================================================================
+
+static std::atomic<bool> s_running{true};
+
+static void signalHandler(int) { s_running.store(false); }
+
+namespace IPCMonitor
+{
+
+// ============================================================================
+//  IPCMonitorApp::Impl
+// ============================================================================
+
+struct IPCMonitorApp::Impl
+{
+   Impl(std::vector<std::unique_ptr<ITransport>> transports, uint16_t httpPort)
+      : transports(std::move(transports))
+      , httpPort(httpPort)
+      , playback(*this->transports.front())
+   {
+   }
+
+   // --- Transports ----------------------------------------------------------
+
+   std::vector<std::unique_ptr<ITransport>> transports;
+
+   ITransport *findTransport(const std::string &topic)
+   {
+      for (auto &t : transports)
+      {
+         for (const auto &tn : t->topicNames())
+         {
+            if (tn == topic) return t.get();
+         }
+      }
+      return nullptr;
+   }
+
+   // --- Web server ----------------------------------------------------------
+
+   uint16_t httpPort;
+   crow::SimpleApp crowApp;
+
+   std::unordered_set<crow::websocket::connection *> wsConnections;
+   std::mutex wsMutex;
+
+   void broadcastWs(const std::string &payload)
+   {
+      std::lock_guard lock(wsMutex);
+      for (auto *conn : wsConnections)
+         conn->send_text(payload);
+   }
+
+   // --- Recording -----------------------------------------------------------
+
+   bool recording = false;
+   std::ofstream recFile;
+   std::string recFilename;
+   std::mutex recMutex;
+
+   // --- Playback ------------------------------------------------------------
+
+   PlaybackEngine playback;
+
+   // --- Message handling ----------------------------------------------------
+
+   void onTransportMessage(const std::string &topic, const std::string &jsonData)
+   {
+      auto now = std::chrono::system_clock::now();
+      auto epochMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+         now.time_since_epoch()).count();
+
+      // ISO-8601 timestamp
+      auto timeT = std::chrono::system_clock::to_time_t(now);
+      auto ms = epochMs % 1000;
+      std::tm tm{};
+      gmtime_r(&timeT, &tm);
+      char timeBuf[32];
+      std::snprintf(timeBuf, sizeof(timeBuf),
+         "%04d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
+         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+         tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<long>(ms));
+
+      crow::json::wvalue envelope;
+      envelope["type"]      = "message";
+      envelope["topic"]     = topic;
+      envelope["timestamp"] = std::string(timeBuf);
+      envelope["data"]      = crow::json::load(jsonData);
+
+      std::string payload = envelope.dump();
+
+      // Record if active
+      {
+         std::lock_guard lock(recMutex);
+         if (recording && recFile.is_open())
+         {
+            crow::json::wvalue rec;
+            rec["topic"]        = topic;
+            rec["timestamp"]    = std::string(timeBuf);
+            rec["timestamp_ms"] = epochMs;
+            rec["data"]         = crow::json::load(jsonData);
+            recFile << rec.dump() << '\n';
+         }
+      }
+
+      broadcastWs(payload);
+   }
+
+   // --- Topic list ----------------------------------------------------------
+
+   void sendTopicList(crow::websocket::connection &conn)
+   {
+      crow::json::wvalue msg;
+      msg["type"] = "topics";
+
+      std::vector<crow::json::wvalue> topicArr;
+      for (auto &t : transports)
+      {
+         for (const auto &tn : t->topicNames())
+         {
+            crow::json::wvalue entry;
+            entry["name"]       = tn;
+            entry["subscribed"] = t->isSubscribed(tn);
+            entry["transport"]  = t->name();
+            topicArr.push_back(std::move(entry));
+         }
+      }
+
+      msg["topics"] = std::move(topicArr);
+      conn.send_text(msg.dump());
+   }
+
+   // --- Recording controls --------------------------------------------------
+
+   void startRecording()
+   {
+      std::lock_guard lock(recMutex);
+      if (recording) return;
+
+      auto now = std::chrono::system_clock::now();
+      auto epochSec = std::chrono::duration_cast<std::chrono::seconds>(
+         now.time_since_epoch()).count();
+      recFilename = "ipc_recording_" + std::to_string(epochSec) + ".ddsrec";
+
+      recFile.open(recFilename, std::ios::out | std::ios::trunc);
+      recording = true;
+      GPINFO("IPCMonitor: recording started -> {}", recFilename);
+   }
+
+   std::string stopRecording()
+   {
+      std::lock_guard lock(recMutex);
+      if (!recording) return {};
+
+      recording = false;
+      recFile.close();
+      GPINFO("IPCMonitor: recording stopped -> {}", recFilename);
+      return recFilename;
+   }
+
+   // --- WebSocket command dispatch ------------------------------------------
+
+   void handleWsMessage(crow::websocket::connection &conn, const std::string &msg)
+   {
+      auto j = crow::json::load(msg);
+      if (!j) return;
+
+      std::string type = j["type"].s();
+
+      if (type == "subscribe")
+      {
+         std::string topic = j["topic"].s();
+         auto *transport = findTransport(topic);
+         if (transport)
+         {
+            transport->subscribe(topic,
+               [this](const std::string &t, const std::string &d) {
+                  onTransportMessage(t, d);
+               });
+         }
+         sendTopicList(conn);
+      }
+      else if (type == "unsubscribe")
+      {
+         std::string topic = j["topic"].s();
+         auto *transport = findTransport(topic);
+         if (transport) transport->unsubscribe(topic);
+         sendTopicList(conn);
+      }
+      else if (type == "record_start")
+      {
+         startRecording();
+         crow::json::wvalue resp;
+         resp["type"] = "recording_started";
+         conn.send_text(resp.dump());
+      }
+      else if (type == "record_stop")
+      {
+         auto filename = stopRecording();
+         crow::json::wvalue resp;
+         resp["type"] = "recording_stopped";
+         resp["filename"] = filename;
+         conn.send_text(resp.dump());
+      }
+      else if (type == "playback_start")
+      {
+         playback.start(
+            // Progress callback
+            [this](size_t current, size_t total) {
+               crow::json::wvalue n;
+               n["type"]    = "playback_progress";
+               n["current"] = current;
+               n["total"]   = total;
+               broadcastWs(n.dump());
+            },
+            // Completion callback
+            [this](bool wasStopped) {
+               crow::json::wvalue n;
+               n["type"] = wasStopped ? "playback_stopped" : "playback_finished";
+               broadcastWs(n.dump());
+            });
+
+         // Notify start
+         crow::json::wvalue n;
+         n["type"]  = "playback_started";
+         n["count"] = playback.messageCount();
+         broadcastWs(n.dump());
+      }
+      else if (type == "playback_stop")
+      {
+         playback.stop();
+      }
+   }
+
+   // --- Crow route setup ----------------------------------------------------
+
+   void setupRoutes()
+   {
+      // Serve the web UI
+      CROW_ROUTE(crowApp, "/")
+      ([]() {
+         crow::response resp(MONITOR_HTML);
+         resp.set_header("Content-Type", "text/html; charset=utf-8");
+         return resp;
+      });
+
+      // Upload a .ddsrec recording for playback
+      CROW_ROUTE(crowApp, "/playback/load")
+         .methods(crow::HTTPMethod::POST)
+      ([this](const crow::request &req) {
+         if (req.body.empty())
+            return crow::response(400, "Empty body");
+
+         auto count = playback.loadRecording(req.body);
+
+         // Notify connected clients
+         crow::json::wvalue notification;
+         notification["type"]  = "recording_loaded";
+         notification["count"] = count;
+         broadcastWs(notification.dump());
+
+         crow::json::wvalue resp;
+         resp["lines"] = count;
+         return crow::response(200, resp.dump());
+      });
+
+      // WebSocket endpoint
+      CROW_WEBSOCKET_ROUTE(crowApp, "/ws")
+         .onopen([this](crow::websocket::connection &conn) {
+            GPINFO("IPCMonitor: WebSocket client connected");
+            {
+               std::lock_guard lock(wsMutex);
+               wsConnections.insert(&conn);
+            }
+            sendTopicList(conn);
+         })
+         .onclose([this](crow::websocket::connection &conn,
+                         const std::string & /*reason*/,
+                         unsigned short /*code*/) {
+            GPINFO("IPCMonitor: WebSocket client disconnected");
+            std::lock_guard lock(wsMutex);
+            wsConnections.erase(&conn);
+         })
+         .onmessage([this](crow::websocket::connection &conn,
+                           const std::string &msg, bool /*isBinary*/) {
+            handleWsMessage(conn, msg);
+         });
+   }
+};
+
+// ============================================================================
+//  IPCMonitorApp public API
+// ============================================================================
+
+IPCMonitorApp::IPCMonitorApp(
+   std::vector<std::unique_ptr<ITransport>> transports,
+   uint16_t httpPort)
+   : _impl(std::make_unique<Impl>(std::move(transports), httpPort))
+{
+}
+
+IPCMonitorApp::~IPCMonitorApp()
+{
+   _impl->playback.stop();
+}
+
+void IPCMonitorApp::run()
+{
+   std::signal(SIGINT, signalHandler);
+   std::signal(SIGTERM, signalHandler);
+
+   _impl->setupRoutes();
+
+   GPINFO("IPCMonitor starting on http://localhost:{}", _impl->httpPort);
+   for (const auto &t : _impl->transports)
+      GPINFO("  Transport: {} ({})", t->name(), t->topicNames().size());
+
+   _impl->crowApp.port(_impl->httpPort).multithreaded().run_async();
+
+   while (s_running.load())
+   {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+   }
+
+   GPINFO("IPCMonitor shutting down...");
+   _impl->playback.stop();
+   _impl->crowApp.stop();
+}
+
+} // namespace IPCMonitor

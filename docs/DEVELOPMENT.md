@@ -100,7 +100,7 @@ git push origin feature/my-feature
 | Static Members | s_ prefix | `s_instance` |
 | Constants | UPPER_CASE | `MAX_RETRIES` |
 | Namespaces | PascalCase | `CommonUtils` |
-| Files | PascalCase | `AsyncQueue.hpp` |
+| Files | PascalCase | `AsyncQueue.h` |
 
 ### Code Style
 
@@ -158,13 +158,14 @@ public:
 // 3. Third-party headers
 // 4. System headers
 
-#include "MyClass.hpp"
+#include "MyClass.h"
 
 #include "CommonUtils/GeneralLogger.h"
 #include "proto/messages.pb.h"
 
 #include <spdlog/spdlog.h>
 #include <zmq.hpp>
+#include <dds/dds.hpp>
 
 #include <memory>
 #include <string>
@@ -212,6 +213,29 @@ int myFunction(int param1, std::string_view param2);
 5. Tests are auto-discovered via `file(GLOB)` in `tests/PubSubTests/CMakeLists.txt`
 6. Re-run CMake configure to pick up new files
 
+### Adding a New CycloneDDS Class
+
+1. Create header: `src/libs/CycloneDDS/NewClass.h` (header-only; CycloneDDSLib is INTERFACE)
+2. Create test: `tests/DDSTests/NewClassUt.cpp`
+3. Tests are auto-discovered via `file(GLOB)` in `tests/DDSTests/CMakeLists.txt`
+4. Re-run CMake configure to pick up new files
+
+### Adding a New DDS IDL Message
+
+1. Create or edit file in `src/libs/CycloneDDS/idl/` directory
+2. IDL files are auto-discovered via glob in `src/libs/CycloneDDS/CMakeLists.txt`
+3. Include generated header as `#include "MessageName.hpp"`
+4. Re-run CMake configure to pick up new files
+
+### Adding a New Vita49_2 Class
+
+1. Create header: `src/libs/Vita49_2/NewClass.h`
+2. Create source: `src/libs/Vita49_2/NewClass.cpp`
+3. Files are auto-discovered via `file(GLOB)` in `src/libs/Vita49_2/CMakeLists.txt`
+4. Create test: `tests/Vita49_2Tests/NewClassUt.cpp`
+5. Tests are auto-discovered via `file(GLOB)` in `tests/Vita49_2Tests/CMakeLists.txt`
+6. Re-run CMake configure to pick up new files
+
 ### Adding a New Proto File
 
 1. Create proto: `src/libs/proto/proto-messages/new_message.proto`
@@ -229,9 +253,8 @@ int myFunction(int param1, std::string_view param2);
 
    target_link_libraries(new_app
       PRIVATE
-         PubSubLib
-         ProtoLib
-         # other dependencies
+         CommonUtils
+         # other dependencies: PubSubLib, ProtoLib, CycloneDDSLib, Vita49_2
    )
    ```
 

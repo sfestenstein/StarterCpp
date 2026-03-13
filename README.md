@@ -2,6 +2,10 @@
 
 A robust, production-ready C++20 starter project template with modern build tooling, comprehensive testing, and CI/CD integration.
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
 ## Features
 
 - **C++20** standard with modern compiler support
@@ -12,6 +16,8 @@ A robust, production-ready C++20 starter project template with modern build tool
 - **ZeroMQ** for messaging (cppzmq)
 - **Zyre** for peer-to-peer discovery and messaging
 - **CZMQ** high-level C binding for ZeroMQ
+- **Eclipse Cyclone DDS** for topic-based DDS publish-subscribe with IDL-defined types and QoS
+- **VITA 49.2** signal data and context packet codec
 - **spdlog** for logging
 - **Code quality tools**: clang-format, clang-tidy
 - **Sanitizers**: AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan)
@@ -28,12 +34,13 @@ A robust, production-ready C++20 starter project template with modern build tool
 - **Build Tool**: Ninja (recommended) or Make
 - **Python**: 3.8+ (for Conan)
 
+> **Note:** Windows (MinGW) is not currently supported due to Conan + MinGW + ZMQ build issues.
+
 ### Build Instructions
 
 #### 1. Clone and Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/yourorg/StarterCpp.git
 cd StarterCpp
 
@@ -41,9 +48,7 @@ cd StarterCpp
 conan profile detect --force
 ```
 
-#### 2. Install Dependencies (One-Time)
-
-Install both Debug and Release configurations to a unified build folder:
+#### 2. Install Dependencies
 
 ```bash
 conan install . --output-folder=build --build=missing -s build_type=Release -s compiler.cppstd=20
@@ -54,8 +59,6 @@ If `conan install` fails while building `libsystemd/255` with an error about
 this is typically a mismatch between newer Linux kernel headers and the base `255` recipe.
 This project works around it by overriding to a newer `libsystemd/255.x` patch release
 in `conanfile.py`.
-
-This installs all dependencies for all presets (debug, release, coverage, ci-linux).
 
 #### 3. Build and Test
 
@@ -88,107 +91,39 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 ./build/debug/bin/ZyreSubscriber  # In terminal 1
 ./build/debug/bin/ZyrePublisher   # In terminal 2
 
-# (Optional) Bind to a specific network interface.
-# You can pass either an interface name (recommended) or a local IP on that interface.
-#   - Linux examples:  ./build/debug/bin/ZyreSubscriber wlp2s0
-#                     ./build/debug/bin/ZyrePublisher  192.168.1.130
-#   - macOS examples:  ./build/debug/bin/ZyreSubscriber en0
-#                     ./build/debug/bin/ZyrePublisher  192.168.1.42
-# Note: Zyre discovery uses LAN beacons; both machines must be on the same LAN/subnet
-# and firewalls/VPNs/guest Wi-Fi isolation can block peer discovery.
+# (Optional) Bind to a specific network interface:
+#   ./build/debug/bin/ZyreSubscriber en0
+#   ./build/debug/bin/ZyrePublisher  192.168.1.42
 
 # High-bandwidth UDP multicast pub/sub
 ./build/debug/bin/HighBandwidthSubscriber  # In terminal 1
 ./build/debug/bin/HighBandwidthPublisher   # In terminal 2
-```
 
-## Project Structure
+# DDS pub/sub (Eclipse Cyclone DDS, topic-based with QoS)
+./build/debug/bin/DDSSubscriber  # In terminal 1
+./build/debug/bin/DDSPublisher   # In terminal 2
 
-```
-StarterCpp/
-├── src/
-│   ├── apps/                     # Executables
-│   │   ├── ZyrePublisherTest.cpp
-│   │   ├── ZyreSubscriberTest.cpp
-│   │   ├── HighBandwidthPublisherTester.cpp
-│   │   └── HighBandwidthSubscriberTester.cpp
-│   └── libs/                     # Libraries
-│       ├── CommonUtils/          # Common utilities library
-│       │   ├── GeneralLogger.h       # Async logging wrapper (spdlog)
-│       │   ├── Timer.h               # Basic timer class
-│       │   ├── SnoozableTimer.h      # Timer with snooze capability
-│       │   └── DataHandler.h         # Data handling utilities
-│       ├── PubSub/               # Publish-Subscribe library
-│       │   ├── ZyreNode.h            # Base Zyre node class
-│       │   ├── ZyrePublisher.h       # Zyre-based publisher
-│       │   ├── ZyreSubscriber.h      # Zyre-based subscriber
-│       │   ├── HighBandwidthPublisher.h   # UDP multicast publisher
-│       │   └── HighBandwidthSubscriber.h  # UDP multicast subscriber
-│       └── proto/                # Protocol buffer library
-│           └── proto-messages/       # Protocol buffer definitions
-│               ├── sensor_data.proto
-│               ├── commands.proto
-│               └── configuration.proto
-├── tests/                        # Unit tests
-│   ├── CommonUtilsTests/         # CommonUtils unit tests
-│   └── PubSubTests/              # PubSub unit tests
-├── docs/                         # Documentation
-├── .github/                      # GitHub configuration
-│   ├── workflows/                # CI/CD pipelines
-│   └── copilot-instructions.md
-├── CMakeLists.txt                # Root CMake configuration
-├── CMakePresets.json             # CMake presets
-├── conanfile.py                  # Conan package configuration
-├── .clang-format                 # Code formatting rules
-├── .clang-tidy                   # Static analysis rules
-└── .editorconfig                 # Editor configuration
+# VITA 49.2 utilities
+./build/debug/bin/Vita49RoundTripTest
+./build/debug/bin/Vita49PerfBenchmark
+./build/debug/bin/Vita49FileCodec
 ```
 
 ## Documentation
 
-- [Project Design](docs/DESIGN.md) - Architecture and design decisions
-- [Build Guide](docs/BUILD.md) - Detailed build instructions
-- [Development Guide](docs/DEVELOPMENT.md) - Contributing and development workflow
+- [Project Design](docs/DESIGN.md) — Architecture and design decisions
+- [Build Guide](docs/BUILD.md) — Detailed build instructions
+- [Development Guide](docs/DEVELOPMENT.md) — Contributing and development workflow
 
 ## CMake Presets
 
-The project uses CMake presets for consistent build configurations across different environments.
-
-### Configure Presets
-
-| Preset | Build Type | Tests | Coverage | Sanitizers | Use Case |
-|--------|------------|-------|----------|------------|----------|
-| `debug` | Debug | ✅ | ❌ | ✅ | Local development |
-| `release` | Release | ❌ | ❌ | ❌ | Production builds |
-| `coverage` | Debug | ✅ | ✅ | ❌ | Code coverage reports |
-| `ci-linux` | Debug | ✅ | ✅ | ❌ | GitHub Actions CI |
-
-### Using Presets
-
-```bash
-# List available presets
-cmake --list-presets
-
-# Configure with a preset
-cmake --preset debug
-
-# Build with a preset
-cmake --build --preset debug
-
-# Test with a preset
-ctest --preset debug
-```
-
-### Custom Configuration (without presets)
-
-```bash
-# Manual configuration example (using unified Conan output)
-cmake -B build/custom -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_TOOLCHAIN_FILE=build/build/Debug/generators/conan_toolchain.cmake \
-    -DBUILD_TESTS=ON \
-    -DENABLE_SANITIZERS=ON
-```
+| Preset | Build Type | Tests | Coverage | Sanitizers | Clang-Tidy | Use Case |
+|--------|------------|-------|----------|------------|------------|----------|
+| `debug` | Debug | Yes | No | Yes | Yes | Local development |
+| `release` | Release | No | No | No | No | Production builds |
+| `coverage` | Debug | Yes | Yes | No | Yes | Code coverage reports |
+| `ci-linux` | Debug | Yes | Yes | No | No | GitHub Actions CI (Linux) |
+| `ci-macos` | Debug | Yes | No | No | No | GitHub Actions CI (macOS) |
 
 ## CMake Options
 

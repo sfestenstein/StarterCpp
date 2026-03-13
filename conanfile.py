@@ -50,6 +50,13 @@ class StarterCppConan(ConanFile):
       self.requires("czmq/4.2.1")
       self.requires("zyre/2.0.1")
 
+      # DDS (Data Distribution Service) - Eclipse Cyclone DDS
+      self.requires("cyclonedds/0.10.5")
+      self.requires("cyclonedds-cxx/0.10.5")
+
+      # Crow (lightweight HTTP/WebSocket server for DDS Monitor)
+      self.requires("crowcpp-crow/1.3.1")
+
       # zyre/2.0.1 on Linux/FreeBSD unconditionally depends on libsystemd/255.
       # libsystemd/255 (base) can fail to build against newer kernel headers.
       # Override to a newer 255.x patch release that includes the updated magic list.
