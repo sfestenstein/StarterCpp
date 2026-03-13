@@ -1,5 +1,5 @@
 # =============================================================================
-# IPCMonitor — web-based IPC traffic inspector
+# Omniscope — web-based IPC traffic inspector
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -18,25 +18,25 @@ add_custom_command(
            ${CMAKE_CURRENT_SOURCE_DIR}/../EmbedHtml.cmake
    COMMENT "Embedding monitor.html into C++ include"
 )
-add_custom_target(IPCMonitorHtml DEPENDS ${MONITOR_HTML_INC})
+add_custom_target(OmniscopeHtml DEPENDS ${MONITOR_HTML_INC})
 
 # ---------------------------------------------------------------------------
 # Executable
 # ---------------------------------------------------------------------------
-file(GLOB IPC_MONITOR_SOURCES "*.cpp")
+file(GLOB OMNISCOPE_SOURCES "*.cpp")
 
-add_executable(IPCMonitor ${IPC_MONITOR_SOURCES})
-add_dependencies(IPCMonitor IPCMonitorHtml)
+add_executable(Omniscope ${OMNISCOPE_SOURCES})
+add_dependencies(Omniscope OmniscopeHtml)
 
 # Crow headers trigger clang-tidy false positives — disable for this target.
-set_target_properties(IPCMonitor PROPERTIES CXX_CLANG_TIDY "")
+set_target_properties(Omniscope PROPERTIES CXX_CLANG_TIDY "")
 
-target_include_directories(IPCMonitor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(Omniscope PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(IPCMonitor
+target_link_libraries(Omniscope
    PRIVATE CycloneDDSLib CommonUtils Crow::Crow
 )
 
-set_target_properties(IPCMonitor PROPERTIES
+set_target_properties(Omniscope PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

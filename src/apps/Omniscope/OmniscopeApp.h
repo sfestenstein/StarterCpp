@@ -1,5 +1,5 @@
-#ifndef IPCMONITORAPP_H_
-#define IPCMONITORAPP_H_
+#ifndef OMNISCOPEAPP_H_
+#define OMNISCOPEAPP_H_
 
 #include "ITransport.h"
 #include "PlaybackEngine.h"
@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 /**
@@ -23,15 +23,15 @@ namespace IPCMonitor
  *   2. Call run() — blocks until interrupted (SIGINT / SIGTERM).
  *   3. Browser clients connect at http://localhost:<port>.
  */
-class IPCMonitorApp
+class OmniscopeApp
 {
 public:
-   IPCMonitorApp(std::vector<std::unique_ptr<ITransport>> transports,
+   OmniscopeApp(std::vector<std::unique_ptr<ITransport>> transports,
                  uint16_t httpPort);
-   ~IPCMonitorApp();
+   ~OmniscopeApp();
 
-   IPCMonitorApp(const IPCMonitorApp &) = delete;
-   IPCMonitorApp &operator=(const IPCMonitorApp &) = delete;
+   OmniscopeApp(const OmniscopeApp &) = delete;
+   OmniscopeApp &operator=(const OmniscopeApp &) = delete;
 
    /// Run the event loop.  Blocks until the global stop signal is raised.
    void run();
@@ -41,6 +41,6 @@ private:
    std::unique_ptr<Impl> _impl;
 };
 
-} // namespace IPCMonitor
+} // namespace Omniscope
 
-#endif // IPCMONITORAPP_H_
+#endif // OMNISCOPEAPP_H_

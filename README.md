@@ -17,7 +17,9 @@ This project is licensed under the [MIT License](LICENSE).
 - **Zyre** for peer-to-peer discovery and messaging
 - **CZMQ** high-level C binding for ZeroMQ
 - **Eclipse Cyclone DDS** for topic-based DDS publish-subscribe with IDL-defined types and QoS
+- **Omniscope** — web-based traffic inspector for any pub/sub transport (DDS, Zyre, ZMQ, …)
 - **VITA 49.2** signal data and context packet codec
+- **Crow** for embedded HTTP/WebSocket server
 - **spdlog** for logging
 - **Code quality tools**: clang-format, clang-tidy
 - **Sanitizers**: AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan)
@@ -103,6 +105,11 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 ./build/debug/bin/DDSSubscriber  # In terminal 1
 ./build/debug/bin/DDSPublisher   # In terminal 2
 
+# Omniscope (web-based traffic inspector)
+./build/debug/bin/Omniscope             # Default: domain 0, port 8080
+./build/debug/bin/Omniscope 1 9090      # Domain 1, port 9090
+# Open http://localhost:8080 in a browser
+
 # VITA 49.2 utilities
 ./build/debug/bin/Vita49RoundTripTest
 ./build/debug/bin/Vita49PerfBenchmark
@@ -146,8 +153,61 @@ Managed by Conan 2.0:
 | cppzmq | 4.10.0 | C++ ZeroMQ bindings |
 | czmq | 4.2.1 | High-level C ZeroMQ binding |
 | zyre | 2.0.1 | Peer-to-peer discovery |
+| cyclonedds | 0.10.5 | DDS middleware |
+| cyclonedds-cxx | 0.10.5 | C++ DDS bindings |
+| crowcpp-crow | 1.3.1 | HTTP/WebSocket server |
 | gtest | 1.14.0 | Unit testing |
+
+## Omniscope
+
+Omniscope is a browser-based traffic inspector for any pub/sub transport in the project. It ships with a DDS transport out of the box and is designed to be extended with Zyre, ZMQ, or custom transports.
+
+### Quick Start
+
+```bash
+# Start the monitor (default: DDS domain 0, port 8080)
+./build/debug/bin/Omniscope
+
+# With custom domain ID and port
+./build/debug/bin/Omniscope 1 9090
+```
+
+Open **http://localhost:8080** in a browser.
+
+### Features
+
+- **Live topic subscription** — click a topic in the left pane to subscribe; messages stream in real-time via WebSocket
+- **3-pane UI** — Topics | Messages | Detail with dark-theme monospace interface
+- **Recording** — click Record to capture messages to a `.ddsrec` (JSON Lines) file
+- **Playback** — load a `.ddsrec` file and replay it with original timing (capped at 5 s per gap), republishing to DDS so other subscribers see the data
+- **Progress indicator** — thin accent progress bar and footer percentage during playback
+- **Multi-transport architecture** — `ITransport` interface allows plugging in new transports without changing the monitor core
+
+### Architecture
+
+The monitor lives in `src/apps/Omniscope/` and is structured around a clean transport abstraction:
+
+| File | Purpose |
+|------|---------|
+| `ITransport.h` | Abstract transport interface |
+| `DdsTransport.h/.cpp` | Eclipse Cyclone DDS transport (pImpl) |
+| `PlaybackEngine.h/.cpp` | Recording load + threaded playback |
+| `OmniscopeApp.h/.cpp` | Crow HTTP/WebSocket orchestrator (pImpl) |
+| `CrowCompat.h` | C++20 / libc++ compatibility shim for Crow |
+| `main.cpp` | Entry point |
+| `web/monitor.html` | Embedded single-page UI |
+
+### Adding a New Transport
+
+1. Create a class that implements `Omniscope::ITransport` (see `DdsTransport` for reference)
+2. Instantiate it in `main.cpp` and push it into the transports vector
+3. Rebuild — the monitor automatically discovers topics from all registered transports
+
+```cpp
+auto zyreTransport = std::make_unique<Omniscope::ZyreTransport>(/* ... */);
+transports.push_back(std::move(zyreTransport));
+```
 
 ## License
 
-This project is provided as a starter template. Add your own license as needed.
+This project is licensed under the [MIT License](LICENSE).

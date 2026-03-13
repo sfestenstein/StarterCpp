@@ -1,9 +1,10 @@
+R"HTMLRAW(
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IPC Monitor</title>
+<title>Omniscope</title>
 <style>
 :root {
    --bg: #1e1e2e;
@@ -207,7 +208,7 @@ footer {
 <body>
 
 <header>
-   <h1>IPC Monitor</h1>
+   <h1>Omniscope</h1>
    <div class="toolbar">
       <span class="rec-indicator" id="recIndicator">&#x23FA; REC</span>
       <button id="btnRecord" onclick="toggleRecord()">Record</button>
@@ -584,3 +585,4 @@ connect();
 </script>
 </body>
 </html>
+)HTMLRAW"

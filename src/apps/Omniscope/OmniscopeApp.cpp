@@ -1,4 +1,4 @@
-#include "IPCMonitorApp.h"
+#include "OmniscopeApp.h"
 
 #include "CommonUtils/GeneralLogger.h"
 #include "CrowCompat.h"
@@ -26,14 +26,14 @@ static std::atomic<bool> s_running{true};
 
 static void signalHandler(int) { s_running.store(false); }
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 // ============================================================================
-//  IPCMonitorApp::Impl
+//  OmniscopeApp::Impl
 // ============================================================================
 
-struct IPCMonitorApp::Impl
+struct OmniscopeApp::Impl
 {
    Impl(std::vector<std::unique_ptr<ITransport>> transports, uint16_t httpPort)
       : transports(std::move(transports))
@@ -166,7 +166,7 @@ struct IPCMonitorApp::Impl
 
       recFile.open(recFilename, std::ios::out | std::ios::trunc);
       recording = true;
-      GPINFO("IPCMonitor: recording started -> {}", recFilename);
+      GPINFO("Omniscope: recording started -> {}", recFilename);
    }
 
    std::string stopRecording()
@@ -176,7 +176,7 @@ struct IPCMonitorApp::Impl
 
       recording = false;
       recFile.close();
-      GPINFO("IPCMonitor: recording stopped -> {}", recFilename);
+      GPINFO("Omniscope: recording stopped -> {}", recFilename);
       return recFilename;
    }
 
@@ -289,7 +289,7 @@ struct IPCMonitorApp::Impl
       // WebSocket endpoint
       CROW_WEBSOCKET_ROUTE(crowApp, "/ws")
          .onopen([this](crow::websocket::connection &conn) {
-            GPINFO("IPCMonitor: WebSocket client connected");
+            GPINFO("Omniscope: WebSocket client connected");
             {
                std::lock_guard lock(wsMutex);
                wsConnections.insert(&conn);
@@ -299,7 +299,7 @@ struct IPCMonitorApp::Impl
          .onclose([this](crow::websocket::connection &conn,
                          const std::string & /*reason*/,
                          unsigned short /*code*/) {
-            GPINFO("IPCMonitor: WebSocket client disconnected");
+            GPINFO("Omniscope: WebSocket client disconnected");
             std::lock_guard lock(wsMutex);
             wsConnections.erase(&conn);
          })
@@ -311,29 +311,29 @@ struct IPCMonitorApp::Impl
 };
 
 // ============================================================================
-//  IPCMonitorApp public API
+//  OmniscopeApp public API
 // ============================================================================
 
-IPCMonitorApp::IPCMonitorApp(
+OmniscopeApp::OmniscopeApp(
    std::vector<std::unique_ptr<ITransport>> transports,
    uint16_t httpPort)
    : _impl(std::make_unique<Impl>(std::move(transports), httpPort))
 {
 }
 
-IPCMonitorApp::~IPCMonitorApp()
+OmniscopeApp::~OmniscopeApp()
 {
    _impl->playback.stop();
 }
 
-void IPCMonitorApp::run()
+void OmniscopeApp::run()
 {
    std::signal(SIGINT, signalHandler);
    std::signal(SIGTERM, signalHandler);
 
    _impl->setupRoutes();
 
-   GPINFO("IPCMonitor starting on http://localhost:{}", _impl->httpPort);
+   GPINFO("Omniscope starting on http://localhost:{}", _impl->httpPort);
    for (const auto &t : _impl->transports)
       GPINFO("  Transport: {} ({})", t->name(), t->topicNames().size());
 
@@ -344,9 +344,9 @@ void IPCMonitorApp::run()
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
    }
 
-   GPINFO("IPCMonitor shutting down...");
+   GPINFO("Omniscope shutting down...");
    _impl->playback.stop();
    _impl->crowApp.stop();
 }
 
-} // namespace IPCMonitor
+} // namespace Omniscope

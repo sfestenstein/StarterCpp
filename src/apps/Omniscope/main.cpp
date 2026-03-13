@@ -1,13 +1,13 @@
 /**
  * @file main.cpp
- * @brief Entry point for the IPC Monitor application.
+ * @brief Entry point for the Omniscope application.
  *
  * Usage:
- *   IPCMonitor [domain_id] [http_port]
+ *   Omniscope [domain_id] [http_port]
  *   Open http://localhost:<port>  (default 8080)
  */
 
-#include "IPCMonitorApp.h"
+#include "OmniscopeApp.h"
 #include "DdsTransport.h"
 #include "CommonUtils/GeneralLogger.h"
 
@@ -20,7 +20,7 @@
 int main(int argc, char *argv[])
 {
    CommonUtils::GeneralLogger logger;
-   logger.init("IPCMonitor");
+   logger.init("Omniscope");
 
    uint32_t domainId = 0;
    uint16_t httpPort = 8080;
@@ -29,10 +29,10 @@ int main(int argc, char *argv[])
    if (argc > 2) httpPort = static_cast<uint16_t>(std::stoul(argv[2]));
 
    // Build the transport list — add more transports here in the future
-   std::vector<std::unique_ptr<IPCMonitor::ITransport>> transports;
-   transports.push_back(std::make_unique<IPCMonitor::DdsTransport>(domainId));
+   std::vector<std::unique_ptr<Omniscope::ITransport>> transports;
+   transports.push_back(std::make_unique<Omniscope::DdsTransport>(domainId));
 
-   IPCMonitor::IPCMonitorApp app(std::move(transports), httpPort);
+   Omniscope::OmniscopeApp app(std::move(transports), httpPort);
    app.run();
 
    return 0;

@@ -4,7 +4,7 @@ This document describes the architecture and design decisions of the StarterCpp 
 
 ## Overview
 
-StarterCpp is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
+StarterCpp is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a web-based IPC traffic monitor, a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
 
 ## Architecture
 
@@ -21,8 +21,14 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 │  ┌──────────────────┐  ┌────────────────────┐  ┌─────────────────────────┐   │
 │  │ Vita49RoundTrip  │  │ Vita49PerfBenchmark│  │    Vita49FileCodec     │   │
 │  └────────┬─────────┘  └─────────┬──────────┘  └───────────┬─────────────┘   │
-│           │                      │                         │                 │
-├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
+│           │                      │                         │                 ││  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                        Omniscope                                         │   │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐     │   │
+│  │  │ OmniscopeApp  │  │PlaybackEngine│  │ ITransport (DDS, Zyre…) │     │   │
+│  │  │ (Crow server) │  │ (recording)  │  │ DdsTransport            │     │   │
+│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                               │├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
 │                                Libraries                                      │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
 │  │                          PubSub Library                                  │  │
@@ -58,10 +64,10 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 │                                                                               │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │                          External Dependencies                                │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐          │
-│  │ spdlog │ │protobuf│ │ ZeroMQ │ │  CZMQ  │ │  Zyre  │ │Cyclone │          │
-│  │        │ │        │ │ cppzmq │ │        │ │        │ │  DDS   │          │
-│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘          │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐  │
+│  │ spdlog │ │protobuf│ │ ZeroMQ │ │  CZMQ  │ │  Zyre  │ │Cyclone │ │  Crow  │  │
+│  │        │ │        │ │ cppzmq │ │        │ │        │ │  DDS   │ │        │  │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘  │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -203,6 +209,22 @@ Demonstrates:
 - Eclipse Cyclone DDS topic-based subscription
 - Shared DDSTopicConfig for QoS alignment with publisher
 - Callback-based message handling with background polling
+
+#### Omniscope (`src/apps/Omniscope/`)
+
+A web-based traffic inspector for IPC pub/sub transports:
+- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `DdsTransport` and is extensible to Zyre, ZMQ, etc.
+- **OmniscopeApp** — orchestrates transports, Crow HTTP/WebSocket server, recording, and playback (pImpl pattern)
+- **PlaybackEngine** — loads `.ddsrec` files and replays them in a background thread with original inter-message timing (capped at 5 s per gap), publishing back through the transport
+- **DdsTransport** — concrete transport using Eclipse Cyclone DDS; pImpl hides all DDS headers
+- **CrowCompat.h** — C++20 / libc++ compatibility shim (atomic `operator<<`) for Crow 1.3.x
+- **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, load/playback with progress bar
+
+Usage:
+```bash
+./build/debug/bin/Omniscope [domain_id] [http_port]
+# Open http://localhost:8080
+```
 
 #### Vita49RoundTripTest (`src/apps/Vita49RoundTripTest.cpp`)
 

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 /**
@@ -39,6 +39,6 @@ private:
    std::unique_ptr<Impl> _impl;
 };
 
-} // namespace IPCMonitor
+} // namespace Omniscope
 
 #endif // DDSTRANSPORT_H_

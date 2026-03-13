@@ -14,7 +14,7 @@
 #include <mutex>
 #include <unordered_set>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 // ============================================================================
@@ -229,4 +229,4 @@ void DdsTransport::publishFromJson(const std::string &topic,
    }
 }
 
-} // namespace IPCMonitor
+} // namespace Omniscope

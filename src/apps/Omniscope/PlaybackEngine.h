@@ -11,7 +11,7 @@
 #include <thread>
 #include <vector>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 /**
@@ -63,6 +63,6 @@ private:
    std::atomic<bool> _playing{false};
 };
 
-} // namespace IPCMonitor
+} // namespace Omniscope
 
 #endif // PLAYBACKENGINE_H_

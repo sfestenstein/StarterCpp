@@ -7,7 +7,7 @@
 #include <chrono>
 #include <sstream>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 PlaybackEngine::PlaybackEngine(ITransport &transport)
@@ -132,4 +132,4 @@ bool PlaybackEngine::isPlaying() const
    return _playing.load();
 }
 
-} // namespace IPCMonitor
+} // namespace Omniscope

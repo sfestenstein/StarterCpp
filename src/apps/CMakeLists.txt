@@ -45,8 +45,8 @@ add_executable(Vita49FileCodec Vita49FileCodec.cpp)
 target_link_libraries(Vita49FileCodec
    PRIVATE Vita49_2 CommonUtils )
 
-# IPC Monitor (web-based traffic inspector, supports multiple transports)
-add_subdirectory(IPCMonitor)
+# Omniscope (web-based traffic inspector, supports multiple transports)
+add_subdirectory(Omniscope)
 
 # DDS Publisher Test
 add_executable(DDSPublisher DDSPublisherTest.cpp)

@@ -9,7 +9,7 @@ StarterCpp is a C++20 starter project template using:
 - **Package Manager**: Conan 2.0
 - **Compiler**: GCC 13+ or Clang 15+ (Linux/macOS)
 - **Testing**: Google Test
-- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre, Eclipse Cyclone DDS
+- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre, Eclipse Cyclone DDS, Crow
 
 ## Project Structure
 
@@ -25,7 +25,15 @@ StarterCpp/
 │   │   ├── DDSSubscriberTest.cpp
 │   │   ├── Vita49RoundTripTest.cpp
 │   │   ├── Vita49PerfBenchmark.cpp
-│   │   └── Vita49FileCodec.cpp
+│   │   ├── Vita49FileCodec.cpp
+│   │   └── Omniscope/          # Web-based IPC traffic inspector
+│   │       ├── ITransport.h          # Abstract transport interface
+│   │       ├── DdsTransport.h/.cpp   # DDS transport (pImpl)
+│   │       ├── PlaybackEngine.h/.cpp # Recording playback engine
+│   │       ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
+│   │       ├── CrowCompat.h          # C++20 atomic shim for Crow
+│   │       ├── main.cpp              # Entry point
+│   │       └── web/monitor.html      # Embedded single-page UI
 │   └── libs/               # Libraries
 │       ├── CommonUtils/    # Common utility library
 │       │   ├── GeneralLogger.h/.cpp  # Async spdlog wrapper with macros
@@ -178,6 +186,14 @@ private:
    target_link_libraries(new_app PRIVATE CommonUtils ...)
    ```
 
+### Adding a New Omniscope Transport
+
+1. Create `src/apps/Omniscope/NewTransport.h` and `NewTransport.cpp`
+2. Implement the `Omniscope::ITransport` interface (see `DdsTransport` for reference)
+3. Instantiate in `src/apps/Omniscope/main.cpp` and push into the transports vector
+4. Source files are auto-discovered via `file(GLOB)` in `Omniscope/CMakeLists.txt`
+5. Re-run CMake configure to pick up new files
+
 ## Build Commands
 
 ```bash
@@ -215,6 +231,7 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 - `Vita49RoundTripTest` - VITA 49.2 round-trip test application
 - `Vita49PerfBenchmark` - VITA 49.2 performance benchmark application
 - `Vita49FileCodec` - VITA 49.2 file codec application
+- `Omniscope` - Web-based IPC traffic inspector (Crow HTTP/WebSocket)
 - `CommonUtilsTests` - CommonUtils unit tests
 - `PubSubTests` - PubSub unit tests
 - `DDSTests` - DDS unit tests
@@ -236,6 +253,7 @@ When suggesting code, these libraries are available:
 | Cyclone DDS | `<dds/dds.hpp>` | `dds::domain::DomainParticipant`, `dds::pub::DataWriter` |
 | CycloneDDS wrappers | `"CycloneDDS/DDSPublisher.h"` | `CycloneDDS::DDSPublisher<T>`, `CycloneDDS::DDSSubscriber<T>` |
 | CycloneDDS config | `"CycloneDDS/DDSTopicConfig.h"` | `CycloneDDS::DDSTopicConfig`, `CycloneDDS::TopicEntry` |
+| Crow | `<crow.h>` | `crow::SimpleApp`, `crow::json::wvalue` (include via `CrowCompat.h` for C++20) |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
 
 ## Testing Patterns

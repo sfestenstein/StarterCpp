@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace IPCMonitor
+namespace Omniscope
 {
 
 /// Callback invoked when a subscribed topic receives a message.
@@ -44,6 +44,6 @@ public:
                                 const std::string &jsonData) = 0;
 };
 
-} // namespace IPCMonitor
+} // namespace Omniscope
 
 #endif // ITRANSPORT_H_

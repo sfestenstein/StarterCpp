@@ -162,6 +162,11 @@ After building:
 ./build/debug/bin/DDSSubscriber  # In terminal 1
 ./build/debug/bin/DDSPublisher   # In terminal 2
 
+# Omniscope (web-based traffic inspector)
+./build/debug/bin/Omniscope             # Default: domain 0, port 8080
+./build/debug/bin/Omniscope 1 9090      # Domain 1, port 9090
+# Open http://localhost:8080 in a browser
+
 # VITA 49.2 utilities
 ./build/debug/bin/Vita49RoundTripTest
 ./build/debug/bin/Vita49PerfBenchmark
