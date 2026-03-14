@@ -1,7 +1,8 @@
 #include "PlaybackEngine.h"
 
-#include "CrowCompat.h"
 #include "CommonUtils/GeneralLogger.h"
+
+#include <crow/json.h>
 
 #include <algorithm>
 #include <chrono>
@@ -98,7 +99,9 @@ void PlaybackEngine::start(ProgressCallback onProgress,
          if (delta > 0)
          {
             auto sleepMs = std::min(delta, static_cast<int64_t>(5000));
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            std::unique_lock lock(_stopMutex);
+            _stopCv.wait_for(lock, std::chrono::milliseconds(sleepMs),
+               [this]() { return _stopFlag.load(); });
          }
          prevOffset = offset;
 
@@ -122,6 +125,7 @@ void PlaybackEngine::start(ProgressCallback onProgress,
 void PlaybackEngine::stop()
 {
    _stopFlag.store(true);
+   _stopCv.notify_all();
    if (_thread.joinable())
       _thread.join();
    _playing.store(false);

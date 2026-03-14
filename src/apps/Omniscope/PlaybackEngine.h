@@ -4,6 +4,7 @@
 #include "ITransport.h"
 
 #include <atomic>
+#include <condition_variable>
 #include <cstddef>
 #include <functional>
 #include <mutex>
@@ -61,6 +62,8 @@ private:
    std::thread _thread;
    std::atomic<bool> _stopFlag{false};
    std::atomic<bool> _playing{false};
+   std::mutex _stopMutex;
+   std::condition_variable _stopCv;
 };
 
 } // namespace Omniscope

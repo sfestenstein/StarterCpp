@@ -5,9 +5,6 @@
 
 #include <crow.h>
 
-#include <atomic>
-#include <chrono>
-#include <csignal>
 #include <format>
 #include <fstream>
 #include <mutex>
@@ -20,14 +17,6 @@
 const std::string MONITOR_HTML =
 #include "web/monitor.html.inc"
 ;
-
-// ============================================================================
-//  Global stop signal
-// ============================================================================
-
-static std::atomic<bool> isRunning{true};
-
-static void signalHandler(int) { isRunning.store(false); }
 
 namespace Omniscope
 {
@@ -329,28 +318,17 @@ OmniscopeApp::~OmniscopeApp()
 
 void OmniscopeApp::run()
 {
-   (void)std::signal(SIGINT, signalHandler);
-   (void)std::signal(SIGTERM, signalHandler);
-
    _impl->setupRoutes();
 
    GPINFO("Omniscope starting on http://localhost:{}", _impl->httpPort);
    for (const auto &t : _impl->transports)
       GPINFO("  Transport: {} ({})", t->name(), t->topicNames().size());
 
-   // Prevent Crow from installing its own SIGINT/SIGTERM handlers
-   // (they would override ours and prevent clean shutdown)
-   _impl->crowApp.signal_clear();
-   _impl->crowApp.port(_impl->httpPort).multithreaded().run_async();
-
-   while (isRunning.load())
-   {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-   }
+   // Crow handles SIGINT/SIGTERM by default and returns from run()
+   _impl->crowApp.port(_impl->httpPort).multithreaded().run();
 
    GPINFO("Omniscope shutting down...");
    _impl->playback.stop();
-   _impl->crowApp.stop();
 }
 
 } // namespace Omniscope
