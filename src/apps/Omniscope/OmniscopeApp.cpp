@@ -1,11 +1,14 @@
 #include "OmniscopeApp.h"
+#include "PlaybackEngine.h"
 
 #include "CommonUtils/GeneralLogger.h"
-#include "CrowCompat.h"
+
+#include <crow.h>
 
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <format>
 #include <fstream>
 #include <mutex>
 #include <unordered_set>
@@ -14,7 +17,7 @@
 //  Embedded web UI
 // ============================================================================
 
-static const char *MONITOR_HTML =
+const std::string MONITOR_HTML =
 #include "web/monitor.html.inc"
 ;
 
@@ -22,9 +25,9 @@ static const char *MONITOR_HTML =
 //  Global stop signal
 // ============================================================================
 
-static std::atomic<bool> s_running{true};
+static std::atomic<bool> isRunning{true};
 
-static void signalHandler(int) { s_running.store(false); }
+static void signalHandler(int) { isRunning.store(false); }
 
 namespace Omniscope
 {
@@ -97,16 +100,14 @@ struct OmniscopeApp::Impl
       auto ms = epochMs % 1000;
       std::tm tm{};
       gmtime_r(&timeT, &tm);
-      char timeBuf[32];
-      std::snprintf(timeBuf, sizeof(timeBuf),
-         "%04d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
+      auto timestamp = std::format("{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.{:03d}Z",
          tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-         tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<long>(ms));
+         tm.tm_hour, tm.tm_min, tm.tm_sec, ms);
 
       crow::json::wvalue envelope;
       envelope["type"]      = "message";
       envelope["topic"]     = topic;
-      envelope["timestamp"] = std::string(timeBuf);
+      envelope["timestamp"] = timestamp;
       envelope["data"]      = crow::json::load(jsonData);
 
       std::string payload = envelope.dump();
@@ -118,7 +119,7 @@ struct OmniscopeApp::Impl
          {
             crow::json::wvalue rec;
             rec["topic"]        = topic;
-            rec["timestamp"]    = std::string(timeBuf);
+            rec["timestamp"]    = timestamp;
             rec["timestamp_ms"] = epochMs;
             rec["data"]         = crow::json::load(jsonData);
             recFile << rec.dump() << '\n';
@@ -328,8 +329,8 @@ OmniscopeApp::~OmniscopeApp()
 
 void OmniscopeApp::run()
 {
-   std::signal(SIGINT, signalHandler);
-   std::signal(SIGTERM, signalHandler);
+   (void)std::signal(SIGINT, signalHandler);
+   (void)std::signal(SIGTERM, signalHandler);
 
    _impl->setupRoutes();
 
@@ -337,9 +338,12 @@ void OmniscopeApp::run()
    for (const auto &t : _impl->transports)
       GPINFO("  Transport: {} ({})", t->name(), t->topicNames().size());
 
+   // Prevent Crow from installing its own SIGINT/SIGTERM handlers
+   // (they would override ours and prevent clean shutdown)
+   _impl->crowApp.signal_clear();
    _impl->crowApp.port(_impl->httpPort).multithreaded().run_async();
 
-   while (s_running.load())
+   while (isRunning.load())
    {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
    }

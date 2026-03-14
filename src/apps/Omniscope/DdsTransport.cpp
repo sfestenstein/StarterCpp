@@ -7,9 +7,8 @@
 
 #include "SensorData.hpp"
 #include "TrackData.hpp"
-#include "Command.hpp"
 
-#include "CrowCompat.h"
+#include <crow/json.h>
 
 #include <mutex>
 #include <unordered_set>
@@ -87,7 +86,7 @@ static dds_messages::TrackUpdate trackFromJson(const crow::json::rvalue &d)
    m.classification(
       static_cast<dds_messages::TrackClassification>(d["classification"].i()));
    m.timestamp_ms(d["timestamp_ms"].i());
-   m.update_number(static_cast<uint32_t>(d["update_number"].i()));
+   m.update_number(static_cast<int32_t>(d["update_number"].i()));
    m.confidence(d["confidence"].d());
    return m;
 }
@@ -165,7 +164,7 @@ std::vector<std::string> DdsTransport::topicNames() const
 void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
 {
    std::lock_guard lock(_impl->mutex);
-   if (_impl->activeTopics.count(topic) > 0) return;
+   if (_impl->activeTopics.contains(topic)) return;
 
    if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorSub)
    {
@@ -192,7 +191,7 @@ void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
 void DdsTransport::unsubscribe(const std::string &topic)
 {
    std::lock_guard lock(_impl->mutex);
-   if (_impl->activeTopics.count(topic) == 0) return;
+   if (!_impl->activeTopics.contains(topic)) return;
 
    if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorSub)
    {
@@ -211,7 +210,7 @@ void DdsTransport::unsubscribe(const std::string &topic)
 bool DdsTransport::isSubscribed(const std::string &topic) const
 {
    std::lock_guard lock(_impl->mutex);
-   return _impl->activeTopics.count(topic) > 0;
+   return _impl->activeTopics.contains(topic);
 }
 
 void DdsTransport::publishFromJson(const std::string &topic,

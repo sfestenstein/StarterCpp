@@ -2,11 +2,9 @@
 #define OMNISCOPEAPP_H_
 
 #include "ITransport.h"
-#include "PlaybackEngine.h"
 
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace Omniscope
