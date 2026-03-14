@@ -25,7 +25,7 @@ class OmniscopeApp
 {
 public:
    OmniscopeApp(std::vector<std::unique_ptr<ITransport>> transports,
-                 uint16_t httpPort);
+                 uint16_t httpPortArg);
    ~OmniscopeApp();
 
    OmniscopeApp(const OmniscopeApp &) = delete;

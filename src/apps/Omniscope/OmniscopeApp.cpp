@@ -27,9 +27,9 @@ namespace Omniscope
 
 struct OmniscopeApp::Impl
 {
-   Impl(std::vector<std::unique_ptr<ITransport>> transports, uint16_t httpPort)
-      : transports(std::move(transports))
-      , httpPort(httpPort)
+   Impl(std::vector<std::unique_ptr<ITransport>> transportsArg, uint16_t httpPortArg)
+      : transports(std::move(transportsArg))
+      , httpPort(httpPortArg)
       , playback(*this->transports.front())
    {
    }
@@ -88,7 +88,7 @@ struct OmniscopeApp::Impl
       auto timeT = std::chrono::system_clock::to_time_t(now);
       auto ms = epochMs % 1000;
       std::tm tm{};
-      gmtime_r(&timeT, &tm);
+      (void)gmtime_r(&timeT, &tm);
       auto timestamp = std::format("{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.{:03d}Z",
          tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
          tm.tm_hour, tm.tm_min, tm.tm_sec, ms);

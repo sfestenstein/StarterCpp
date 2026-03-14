@@ -99,8 +99,8 @@ static dds_messages::TrackUpdate trackFromJson(const crow::json::rvalue &d)
 
 struct DdsTransport::Impl
 {
-   explicit Impl(uint32_t domainId)
-      : domainId(domainId)
+   explicit Impl(uint32_t domainIdArg)
+      : domainId(domainIdArg)
    {
       ddsConfig.defaultInitialize();
       const auto &config = ddsConfig.config();
