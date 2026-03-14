@@ -60,6 +60,14 @@ jobs:
             -s build_type=Release \
             -s compiler.cppstd=20
 
+      - name: Patch CycloneDDS headers (GCC 14+ C++20 fix)
+        run: |
+          # CycloneDDS 0.10.x uses ~Class<T>() destructor syntax that is
+          # ill-formed in C++20. GCC 14+ treats this as an unfixable hard error.
+          # Patch the headers in the Conan cache to use the correct ~Class() form.
+          find ~/.conan2 -path '*/include/ddscxx/*.hpp' -exec \
+            sed -i -E 's/~([A-Za-z_][A-Za-z0-9_]*)<[^>]+>\(\)/~\1()/g' {} +
+
       - name: Configure CMake
         run: cmake --preset ci-linux
 
