@@ -22,6 +22,8 @@ namespace Omniscope
 
 static crow::json::wvalue toJson(const dds_messages::SensorReading &m)
 {
+   // TODO IDL messages should have a to_json() method or similar instead of this ad-hoc conversion
+   // check the IDL compiler to see if can generate helper classes to help us out here.
    crow::json::wvalue j;
    j["sensor_id"]    = m.sensor_id();
    j["sensor_name"]  = m.sensor_name();
