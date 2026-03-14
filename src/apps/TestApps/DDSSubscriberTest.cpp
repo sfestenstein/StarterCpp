@@ -14,20 +14,19 @@
 
 #include <chrono>
 #include <csignal>
-#include <iostream>
 #include <thread>
 
-static std::atomic<bool> s_running{true};
+static std::atomic<bool> isRunning{true};
 
 void signalHandler(int)
 {
-   s_running.store(false);
+   isRunning.store(false);
 }
-
+// NOLINTNEXTLINE
 int main(int argc, char *argv[])
 {
-   std::signal(SIGINT, signalHandler);
-   std::signal(SIGTERM, signalHandler);
+   (void)std::signal(SIGINT, signalHandler);
+   (void)std::signal(SIGTERM, signalHandler);
 
    CommonUtils::GeneralLogger logger;
    logger.init("DDSSubscriberTest");
@@ -67,7 +66,7 @@ int main(int argc, char *argv[])
 
    GPINFO("DDSSubscriberTest running. Press Ctrl+C to stop.");
 
-   while (s_running.load())
+   while (isRunning.load())
    {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
    }

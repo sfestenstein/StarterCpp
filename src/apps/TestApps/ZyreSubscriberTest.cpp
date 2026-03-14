@@ -12,6 +12,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
+// NOLINTNEXTLINE
 int main(int argc, char* argv[]) 
 {
     // Initialize logger

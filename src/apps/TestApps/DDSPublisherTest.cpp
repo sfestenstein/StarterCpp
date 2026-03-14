@@ -11,25 +11,23 @@
 
 #include "SensorData.hpp"
 #include "TrackData.hpp"
-#include "Command.hpp"
 
 #include <chrono>
 #include <csignal>
-#include <iostream>
 #include <random>
 #include <thread>
 
-static std::atomic<bool> s_running{true};
-
+static std::atomic<bool> isRunning{true};
 void signalHandler(int)
 {
-   s_running.store(false);
+   isRunning.store(false);
 }
 
+// NOLINTNEXTLINE
 int main(int argc, char *argv[])
 {
-   std::signal(SIGINT, signalHandler);
-   std::signal(SIGTERM, signalHandler);
+   (void)std::signal(SIGINT, signalHandler);
+   (void)std::signal(SIGTERM, signalHandler);
 
    CommonUtils::GeneralLogger logger;
    logger.init("DDSPublisherTest");
@@ -59,7 +57,7 @@ int main(int argc, char *argv[])
 
    int sequence = 0;
 
-   while (s_running.load())
+   while (isRunning.load())
    {
       auto now = std::chrono::system_clock::now();
       auto epochMs = std::chrono::duration_cast<std::chrono::milliseconds>(

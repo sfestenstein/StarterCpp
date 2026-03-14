@@ -2,7 +2,6 @@
 #include "GeneralLogger.h"
 
 #include <chrono>
-#include <iostream>
 #include <random>
 #include <string>
 #include <thread>
@@ -13,6 +12,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
+// NOLINTNEXTLINE
 int main(int argc, char* argv[]) 
 {
     // Initialize logger

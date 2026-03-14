@@ -16,14 +16,13 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <numbers>
 #include <random>
 #include <string>
 #include <vector>
 
 namespace
 {
-
-constexpr double PI = 3.14159265358979323846;
 
 // ============================================================================
 // Waveform generators
@@ -35,25 +34,24 @@ Vita49_2::IQSamples generateTone(size_t count, double freqHz, double sampleRateH
    Vita49_2::IQSamples samples(count);
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
-      auto phase = static_cast<float>(2.0 * PI * freqHz * t);
+      const double t = static_cast<double>(i) / sampleRateHz;
+      auto phase = static_cast<float>(2.0 * std::numbers::pi * freqHz * t);
       samples[i] = {std::cos(phase), std::sin(phase)};
    }
    return samples;
 }
 
 /// Linear chirp: frequency sweeps from f0 to f1 over the duration
-Vita49_2::IQSamples generateChirp(size_t count, double f0, double f1,
-                                   double sampleRateHz)
+Vita49_2::IQSamples generateChirp(size_t count, double f0, double f1, double sampleRateHz)
 {
    Vita49_2::IQSamples samples(count);
-   double duration = static_cast<double>(count) / sampleRateHz;
-   double rate = (f1 - f0) / duration;
+   const double duration = static_cast<double>(count) / sampleRateHz;
+   const double rate = (f1 - f0) / duration;
 
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
-      auto phase = static_cast<float>(2.0 * PI * (f0 * t + 0.5 * rate * t * t));
+      const double t = static_cast<double>(i) / sampleRateHz;
+      auto phase = static_cast<float>(2.0 * std::numbers::pi * (f0 * t + 0.5 * rate * t * t));
       samples[i] = {std::cos(phase), std::sin(phase)};
    }
    return samples;
@@ -75,13 +73,13 @@ Vita49_2::IQSamples generateNoise(size_t count, float stddev, uint32_t seed)
 
 /// Scaled tone — amplitude < 1.0 to avoid clipping at full scale
 Vita49_2::IQSamples generateScaledTone(size_t count, double freqHz,
-                                        double sampleRateHz, float amplitude)
+                                       double sampleRateHz, float amplitude)
 {
    Vita49_2::IQSamples samples(count);
    for (size_t i = 0; i < count; ++i)
    {
-      double t = static_cast<double>(i) / sampleRateHz;
-      auto phase = static_cast<float>(2.0 * PI * freqHz * t);
+      const double t = static_cast<double>(i) / sampleRateHz;
+      auto phase = static_cast<float>(2.0 * std::numbers::pi * freqHz * t);
       samples[i] = {amplitude * std::cos(phase), amplitude * std::sin(phase)};
    }
    return samples;
@@ -118,16 +116,16 @@ ErrorMetrics computeMetrics(const Vita49_2::IQSamples& original,
 
    for (size_t i = 0; i < metrics.sampleCount; ++i)
    {
-      float errI = original[i].real() - decoded[i].real();
-      float errQ = original[i].imag() - decoded[i].imag();
+      const float errI = original[i].real() - decoded[i].real();
+      const float errQ = original[i].imag() - decoded[i].imag();
 
-      float absErrI = std::fabs(errI);
-      float absErrQ = std::fabs(errQ);
-      maxErr = std::max(maxErr, std::max(absErrI, absErrQ));
+      const float absErrI = std::fabs(errI);
+      const float absErrQ = std::fabs(errQ);
+      maxErr = std::max({maxErr, absErrI, absErrQ});
 
-      sumSqError  += static_cast<double>(errI * errI + errQ * errQ);
-      sumSqSignal += static_cast<double>(original[i].real() * original[i].real() +
-                                          original[i].imag() * original[i].imag());
+      sumSqError  += static_cast<double>((errI * errI) + (errQ * errQ));
+      sumSqSignal += static_cast<double>((original[i].real() * original[i].real()) +
+                                         (original[i].imag() * original[i].imag()));
    }
 
    const double n = static_cast<double>(metrics.sampleCount) * 2.0;   // I+Q values
@@ -206,7 +204,7 @@ bool runRoundTrip(const std::string& name,
 // ============================================================================
 // main
 // ============================================================================
-
+// NOLINTNEXTLINE
 int main(int argc, char* argv[])
 {
    CommonUtils::GeneralLogger logger;
@@ -228,7 +226,7 @@ int main(int argc, char* argv[])
    // 16-bit quantization gives ~96 dB theoretical max SNR for full-scale
    // signals, but practical limit is ~90 dB. Use conservative threshold.
    constexpr float SNR_THRESHOLD_DB = 80.0f;
-   constexpr double SAMPLE_RATE     = 1.0e6;   // 1 MHz
+   constexpr double SAMPLE_RATE     = 1.0e6;
    constexpr uint32_t STREAM_ID     = 0x1234;
 
    int failures = 0;
@@ -239,15 +237,15 @@ int main(int argc, char* argv[])
       Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian, scaleFactor);
 
       if (!runRoundTrip("Tone (1 kHz)",
-            generateScaledTone(numSamples, 1000.0, SAMPLE_RATE, 0.9f),
-            codec, STREAM_ID, SNR_THRESHOLD_DB))
+                        generateScaledTone(numSamples, 1000.0, SAMPLE_RATE, 0.9f),
+                        codec, STREAM_ID, SNR_THRESHOLD_DB))
       {
          ++failures;
       }
 
       if (!runRoundTrip("Tone (100 kHz)",
-            generateScaledTone(numSamples, 100000.0, SAMPLE_RATE, 0.5f),
-            codec, STREAM_ID, SNR_THRESHOLD_DB))
+                        generateScaledTone(numSamples, 100000.0, SAMPLE_RATE, 0.5f), 
+                        codec, STREAM_ID, SNR_THRESHOLD_DB))
       {
          ++failures;
       }
@@ -271,7 +269,7 @@ int main(int argc, char* argv[])
             generateTone(numSamples, 10000.0, SAMPLE_RATE),
             codec, STREAM_ID, 70.0f))
       {
-         ++failures;
+            ++failures;
       }
    }
 

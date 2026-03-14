@@ -19,18 +19,18 @@
 #include "GeneralLogger.h"
 #include "Vita49Codec.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <numbers>
 #include <string>
 #include <vector>
 
 namespace
 {
-
-constexpr double PI = 3.14159265358979323846;
 
 // ============================================================================
 // File I/O
@@ -218,7 +218,7 @@ void logSampleSummary(const Vita49_2::IQSamples& samples)
       maxI = std::max(maxI, s.real());
       minQ = std::min(minQ, s.imag());
       maxQ = std::max(maxQ, s.imag());
-      sumMag2 += static_cast<double>(s.real() * s.real() + s.imag() * s.imag());
+      sumMag2 += static_cast<double>((s.real() * s.real()) + (s.imag() * s.imag()));
    }
 
    double rmsMag = std::sqrt(sumMag2 / static_cast<double>(samples.size()));
@@ -253,7 +253,7 @@ int doInspect(const std::string& path)
    GPINFO("Size:  {} bytes", data.size());
    GPINFO("==========================================================");
 
-   Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
+   const Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
    auto packets = codec.parseStream(data.data(), data.size());
 
    GPINFO("Decoded {} packet(s):", packets.size());
@@ -308,7 +308,7 @@ int doGenerate(const std::string& path, size_t numSamples, double freqHz)
    GPINFO("  Stream ID:   0x{:08X}", STREAM_ID);
    GPINFO("==========================================================");
 
-   Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
+   const Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
 
    // 1) Context packet
    Vita49_2::ContextFields ctx;
@@ -326,8 +326,8 @@ int doGenerate(const std::string& path, size_t numSamples, double freqHz)
    Vita49_2::IQSamples samples(numSamples);
    for (size_t i = 0; i < numSamples; ++i)
    {
-      double t = static_cast<double>(i) / SAMPLE_RATE;
-      auto phase = static_cast<float>(2.0 * PI * freqHz * t);
+      const double t = static_cast<double>(i) / SAMPLE_RATE;
+      auto phase = static_cast<float>(2.0 * std::numbers::pi * freqHz * t);
       samples[i] = {0.8f * std::cos(phase), 0.8f * std::sin(phase)};
    }
 
@@ -371,7 +371,7 @@ int doRoundTrip(const std::string& path)
    GPINFO("Size:  {} bytes", data.size());
    GPINFO("==========================================================");
 
-   Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
+   const Vita49_2::Vita49Codec codec(Vita49_2::ByteOrder::BigEndian);
 
    // Decode
    auto packets = codec.parseStream(data.data(), data.size());
@@ -390,7 +390,7 @@ int doRoundTrip(const std::string& path)
    {
       if (pkt.type == Vita49_2::ParsedPacket::Type::SignalData)
       {
-         uint32_t sid = pkt.header.streamId.value_or(0);
+         const uint32_t sid = pkt.header.streamId.value_or(0);
          auto bytes = codec.encodeSignalData(
             sid, pkt.samples, pkt.header.packetCount,
             pkt.header.tsiType, pkt.header.tsfType,
@@ -401,7 +401,7 @@ int doRoundTrip(const std::string& path)
       }
       else if (pkt.type == Vita49_2::ParsedPacket::Type::Context)
       {
-         uint32_t sid = pkt.header.streamId.value_or(0);
+         const uint32_t sid = pkt.header.streamId.value_or(0);
          auto bytes = codec.encodeContext(
             sid, pkt.contextFields, pkt.header.packetCount,
             pkt.header.tsiType, pkt.header.tsfType,
@@ -459,9 +459,9 @@ int doRoundTrip(const std::string& path)
       float maxErr = 0.0f;
       for (size_t i = 0; i < allSamples1.size(); ++i)
       {
-         float eI = std::fabs(allSamples1[i].real() - allSamples2[i].real());
-         float eQ = std::fabs(allSamples1[i].imag() - allSamples2[i].imag());
-         maxErr = std::max(maxErr, std::max(eI, eQ));
+         const float eI = std::fabs(allSamples1[i].real() - allSamples2[i].real());
+         const float eQ = std::fabs(allSamples1[i].imag() - allSamples2[i].imag());
+         maxErr = std::max({maxErr, eI, eQ});
       }
       GPINFO("Max sample error: {:.6e}", maxErr);
 
@@ -511,41 +511,44 @@ void printUsage(const char* progName)
 // ============================================================================
 // main
 // ============================================================================
-
+// NOLINTNEXTLINE
 int main(int argc, char* argv[])
 {
    CommonUtils::GeneralLogger logger;
    logger.init("Vita49FileCodec");
-
    if (argc < 3)
    {
       printUsage(argv[0]);
       return 1;
    }
 
-   std::string mode = argv[1];
-   std::string filePath = argv[2];
+   const std::string mode = argv[1];
+   const std::string filePath = argv[2];
 
    if (mode == "generate")
    {
       size_t numSamples = 10000;
       double freqHz = 1000.0;
-      if (argc > 3) { numSamples = static_cast<size_t>(std::atol(argv[3])); }
-      if (argc > 4) { freqHz = std::atof(argv[4]); }
+      if (argc > 3)
+      {
+         numSamples = static_cast<size_t>(std::atol(argv[3]));
+      }
+      if (argc > 4)
+      {
+         freqHz = std::atof(argv[4]);
+      }
       return doGenerate(filePath, numSamples, freqHz);
    }
-   else if (mode == "inspect")
+   if (mode == "inspect")
    {
       return doInspect(filePath);
    }
-   else if (mode == "roundtrip")
+   if (mode == "roundtrip")
    {
       return doRoundTrip(filePath);
    }
-   else
-   {
-      GPERROR("Unknown mode '{}'", mode);
-      printUsage(argv[0]);
-      return 1;
-   }
+
+   GPERROR("Unknown mode '{}'", mode);
+   printUsage(argv[0]);
+   return 1;
 }

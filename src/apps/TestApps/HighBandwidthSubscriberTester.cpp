@@ -1,7 +1,6 @@
 #include "HighBandwidthSubscriber.h"
 #include <chrono>
 #include <csignal>
-#include <iostream>
 #include <string>
 #include <thread>
 
@@ -11,6 +10,7 @@
 #include <commands.pb.h>
 #include <configuration.pb.h>
 
+// NOLINTNEXTLINE
 int main(int argc, char* argv[]) 
 {
     // Initialize logger

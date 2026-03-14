@@ -9,7 +9,6 @@
 #include <dds/dds.hpp>
 
 // System headers
-#include <memory>
 #include <string>
 #include <unordered_map>
 

@@ -35,7 +35,7 @@ protected:
          entries.push_back(
             {t, dds::pub::qos::DataWriterQos{}, dds::sub::qos::DataReaderQos{}});
       }
-      return CycloneDDS::DDSTopicConfig(std::move(entries));
+      return CycloneDDS::DDSTopicConfig(entries);
    }
 };
 

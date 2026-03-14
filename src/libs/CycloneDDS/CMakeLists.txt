@@ -36,6 +36,17 @@ file(GLOB IDL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/idl/*.idl")
 
 idlcxx_generate(TARGET DDSMessages FILES ${IDL_FILES})
 
+# IDL-generated code triggers clang-tidy warnings.  Drop a .clang-tidy
+# config next to the generated files that disables all checks so that
+# any target compiling them stays warning-free.
+get_target_property(_dds_gen_dir DDSMessages INTERFACE_INCLUDE_DIRECTORIES)
+if(_dds_gen_dir)
+   file(WRITE "${_dds_gen_dir}/.clang-tidy"
+      "---\nChecks: '-*,misc-definitions-in-headers'\nHeaderFilterRegex: ''\n"
+   )
+endif()
+set_target_properties(DDSMessages PROPERTIES CXX_CLANG_TIDY "")
+
 # ---------------------------------------------------------------------------
 # CycloneDDSLib target (compiled library — .cpp sources + header-only templates)
 # ---------------------------------------------------------------------------

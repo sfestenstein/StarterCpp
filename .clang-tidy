@@ -18,20 +18,26 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -cert-err58-cpp,
+  -cert-err34-c,
+  -misc-include-cleaner,
   -misc-no-recursion,
   -misc-non-private-member-variables-in-classes,
+  -misc-use-anonymous-namespace,
+  -misc-use-internal-linkage,
   -modernize-use-trailing-return-type,
+  -modernize-use-scoped-lock,
   -modernize-pass-by-value,
-  -misc-include-cleaner,
   -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
   -readability-magic-numbers,
+  -readability-named-parameter,
   -readability-identifier-length,
-  -readability-uppercase-literal-suffix
+  -readability-uppercase-literal-suffix,
+  -portability-template-virtual-member-function
 
 WarningsAsErrors: ''
 
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '.*/src/.*'
 
 FormatStyle: file
 
