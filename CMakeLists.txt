@@ -77,6 +77,15 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    add_compile_options(${MSVC_WARNINGS})
 endif()
 
+# CycloneDDS 0.10.x headers use template-id destructor syntax
+# (e.g. ~Reference<DELEGATE>() instead of ~Reference()) that is
+# ill-formed in C++20.  GCC 14+ treats this as a hard error.
+# Use -fpermissive to downgrade to a warning until CycloneDDS is upgraded.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+   add_compile_options(-fpermissive)
+endif()
+
+
 # =============================================================================
 # Sanitizers
 # =============================================================================
