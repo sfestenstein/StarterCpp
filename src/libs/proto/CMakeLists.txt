@@ -86,6 +86,13 @@ target_include_directories(${PROJECT_NAME}
       $<INSTALL_INTERFACE:include>
 )
 
+# Hand-written headers (not SYSTEM — show warnings for our own code)
+target_include_directories(${PROJECT_NAME}
+   PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+      $<INSTALL_INTERFACE:include>
+)
+
 # Link protobuf
 target_link_libraries(${PROJECT_NAME}
    PUBLIC
