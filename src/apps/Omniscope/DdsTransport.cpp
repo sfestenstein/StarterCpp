@@ -5,8 +5,7 @@
 #include "CycloneDDS/DDSSubscriber.h"
 #include "CommonUtils/GeneralLogger.h"
 
-#include "SensorData.hpp"
-#include "TrackData.hpp"
+#include "DdsJsonHelpers.h"
 
 #include <crow/json.h>
 
@@ -15,83 +14,6 @@
 
 namespace Omniscope
 {
-
-// ============================================================================
-//  JSON serialisation helpers — DDS IDL types → JSON string
-// ============================================================================
-
-static crow::json::wvalue toJson(const dds_messages::SensorReading &m)
-{
-   // TODO IDL messages should have a to_json() method or similar instead of this ad-hoc conversion
-   // check the IDL compiler to see if can generate helper classes to help us out here.
-   crow::json::wvalue j;
-   j["sensor_id"]    = m.sensor_id();
-   j["sensor_name"]  = m.sensor_name();
-   j["value"]        = m.value();
-   j["unit"]         = m.unit();
-   j["timestamp_ms"] = m.timestamp_ms();
-   j["quality"]      = m.quality();
-   j["status"]       = static_cast<int>(m.status());
-   j["latitude"]     = m.latitude();
-   j["longitude"]    = m.longitude();
-   j["altitude"]     = m.altitude();
-   return j;
-}
-
-static crow::json::wvalue toJson(const dds_messages::TrackUpdate &m)
-{
-   crow::json::wvalue j;
-   j["track_id"]       = m.track_id();
-   j["track_name"]     = m.track_name();
-   j["latitude"]       = m.latitude();
-   j["longitude"]      = m.longitude();
-   j["altitude"]       = m.altitude();
-   j["heading"]        = m.heading();
-   j["speed"]          = m.speed();
-   j["classification"] = static_cast<int>(m.classification());
-   j["timestamp_ms"]   = m.timestamp_ms();
-   j["update_number"]  = m.update_number();
-   j["confidence"]     = m.confidence();
-   return j;
-}
-
-// ============================================================================
-//  JSON deserialisation helpers — JSON string → DDS IDL types (for playback)
-// ============================================================================
-
-static dds_messages::SensorReading sensorFromJson(const crow::json::rvalue &d)
-{
-   dds_messages::SensorReading m;
-   m.sensor_id(d["sensor_id"].s());
-   m.sensor_name(d["sensor_name"].s());
-   m.value(d["value"].d());
-   m.unit(d["unit"].s());
-   m.timestamp_ms(d["timestamp_ms"].i());
-   m.quality(static_cast<int32_t>(d["quality"].i()));
-   m.status(static_cast<dds_messages::SensorStatus>(d["status"].i()));
-   m.latitude(d["latitude"].d());
-   m.longitude(d["longitude"].d());
-   m.altitude(d["altitude"].d());
-   return m;
-}
-
-static dds_messages::TrackUpdate trackFromJson(const crow::json::rvalue &d)
-{
-   dds_messages::TrackUpdate m;
-   m.track_id(d["track_id"].s());
-   m.track_name(d["track_name"].s());
-   m.latitude(d["latitude"].d());
-   m.longitude(d["longitude"].d());
-   m.altitude(d["altitude"].d());
-   m.heading(d["heading"].d());
-   m.speed(d["speed"].d());
-   m.classification(
-      static_cast<dds_messages::TrackClassification>(d["classification"].i()));
-   m.timestamp_ms(d["timestamp_ms"].i());
-   m.update_number(static_cast<int32_t>(d["update_number"].i()));
-   m.confidence(d["confidence"].d());
-   return m;
-}
 
 // ============================================================================
 //  DdsTransport::Impl
@@ -107,17 +29,21 @@ struct DdsTransport::Impl
 
       sensorPub = std::make_unique<
          CycloneDDS::DDSPublisher<dds_messages::SensorReading>>(
-         domainId, config, "MonitorSensorPub");
+         domainId, config.getEntry(std::string(CycloneDDS::SENSOR_TOPIC)),
+         "MonitorSensorPub");
       trackPub = std::make_unique<
          CycloneDDS::DDSPublisher<dds_messages::TrackUpdate>>(
-         domainId, config, "MonitorTrackPub");
+         domainId, config.getEntry(std::string(CycloneDDS::TRACK_TOPIC)),
+         "MonitorTrackPub");
 
       sensorSub = std::make_unique<
          CycloneDDS::DDSSubscriber<dds_messages::SensorReading>>(
-         domainId, config, "MonitorSensor");
+         domainId, config.getEntry(std::string(CycloneDDS::SENSOR_TOPIC)),
+         "MonitorSensor");
       trackSub = std::make_unique<
          CycloneDDS::DDSSubscriber<dds_messages::TrackUpdate>>(
-         domainId, config, "MonitorTrack");
+         domainId, config.getEntry(std::string(CycloneDDS::TRACK_TOPIC)),
+         "MonitorTrack");
    }
 
    uint32_t domainId;
@@ -170,18 +96,20 @@ void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
 
    if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorSub)
    {
-      _impl->sensorSub->subscribe(std::string(CycloneDDS::SENSOR_TOPIC),
+      _impl->sensorSub->subscribe(
          [callback](const dds_messages::SensorReading &msg) {
-            callback(std::string(CycloneDDS::SENSOR_TOPIC), toJson(msg).dump());
+            callback(std::string(CycloneDDS::SENSOR_TOPIC),
+               DdsJsonHelpers::toJson(msg).dump());
          });
       _impl->sensorSub->start();
       _impl->activeTopics.insert(topic);
    }
    else if (topic == CycloneDDS::TRACK_TOPIC && _impl->trackSub)
    {
-      _impl->trackSub->subscribe(std::string(CycloneDDS::TRACK_TOPIC),
+      _impl->trackSub->subscribe(
          [callback](const dds_messages::TrackUpdate &msg) {
-            callback(std::string(CycloneDDS::TRACK_TOPIC), toJson(msg).dump());
+            callback(std::string(CycloneDDS::TRACK_TOPIC),
+               DdsJsonHelpers::toJson(msg).dump());
          });
       _impl->trackSub->start();
       _impl->activeTopics.insert(topic);
@@ -223,13 +151,15 @@ void DdsTransport::publishFromJson(const std::string &topic,
 
    if (topic == CycloneDDS::SENSOR_TOPIC && _impl->sensorPub)
    {
-      _impl->sensorPub->publish(std::string(CycloneDDS::SENSOR_TOPIC),
-                                sensorFromJson(data));
+      _impl->sensorPub->publish(
+         DdsJsonHelpers::fromJson(data,
+            static_cast<dds_messages::SensorReading const *>(nullptr)));
    }
    else if (topic == CycloneDDS::TRACK_TOPIC && _impl->trackPub)
    {
-      _impl->trackPub->publish(std::string(CycloneDDS::TRACK_TOPIC),
-                               trackFromJson(data));
+      _impl->trackPub->publish(
+         DdsJsonHelpers::fromJson(data,
+            static_cast<dds_messages::TrackUpdate const *>(nullptr)));
    }
 }
 

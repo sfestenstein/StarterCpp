@@ -5,6 +5,8 @@
  * Defines command messages for system control and tasking.
  */
 
+#include "MessageHeader.idl"
+
 module dds_messages
 {
 
@@ -28,6 +30,7 @@ module dds_messages
    @topic
    struct Command
    {
+      MessageHeader header;
       @key string<64> command_id;
       string<64> source_id;
       string<64> target_id;
@@ -41,6 +44,7 @@ module dds_messages
    @topic
    struct CommandResponse
    {
+      MessageHeader header;
       @key string<64> response_id;
       string<64> command_id;
       string<64> responder_id;

@@ -24,33 +24,31 @@ protected:
    void TearDown() override {}
 
    /**
-    * @brief Build a DDSTopicConfig that covers all topics used in tests.
+    * @brief Build a TopicEntry with default QoS for the given topic name.
     */
-   static CycloneDDS::DDSTopicConfig makeConfig(
-      std::initializer_list<std::string> topics)
+   static CycloneDDS::TopicEntry makeEntry(const std::string &topic)
    {
-      std::vector<CycloneDDS::TopicEntry> entries;
-      for (const auto &t : topics)
+      return
       {
-         entries.push_back(
-            {t, dds::pub::qos::DataWriterQos{}, dds::sub::qos::DataReaderQos{}});
-      }
-      return CycloneDDS::DDSTopicConfig(entries);
+         .topicName = topic,
+         .writerQos = dds::pub::qos::DataWriterQos{},
+         .readerQos = dds::sub::qos::DataReaderQos{}
+      };
    }
 };
 
 TEST_F(DDSPublisherTest, Construction_ValidDomain_Succeeds)
 {
-   auto cfg = makeConfig({"AnyTopic"});
    EXPECT_NO_THROW({
-      CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(TEST_DOMAIN_ID, cfg, "TestPub");
+      CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(
+         TEST_DOMAIN_ID, makeEntry("AnyTopic"), "TestPub");
    });
 }
 
 TEST_F(DDSPublisherTest, Publish_SensorReading_NoThrow)
 {
-   auto cfg = makeConfig({"TestSensorTopic"});
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(TEST_DOMAIN_ID, cfg, "SensorPub");
+   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(
+      TEST_DOMAIN_ID, makeEntry("TestSensorTopic"), "SensorPub");
 
    dds_messages::SensorReading msg;
    msg.sensor_id("test-sensor");
@@ -64,13 +62,13 @@ TEST_F(DDSPublisherTest, Publish_SensorReading_NoThrow)
    msg.longitude(-122.0);
    msg.altitude(100.0);
 
-   EXPECT_NO_THROW(pub.publish("TestSensorTopic", msg));
+   EXPECT_NO_THROW(pub.publish(msg));
 }
 
 TEST_F(DDSPublisherTest, Publish_TrackUpdate_NoThrow)
 {
-   auto cfg = makeConfig({"TestTrackTopic"});
-   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> pub(TEST_DOMAIN_ID, cfg, "TrackPub");
+   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> pub(
+      TEST_DOMAIN_ID, makeEntry("TestTrackTopic"), "TrackPub");
 
    dds_messages::TrackUpdate msg;
    msg.track_id("track-001");
@@ -85,13 +83,13 @@ TEST_F(DDSPublisherTest, Publish_TrackUpdate_NoThrow)
    msg.update_number(1);
    msg.confidence(0.85);
 
-   EXPECT_NO_THROW(pub.publish("TestTrackTopic", msg));
+   EXPECT_NO_THROW(pub.publish(msg));
 }
 
 TEST_F(DDSPublisherTest, Publish_Command_NoThrow)
 {
-   auto cfg = makeConfig({"TestCommandTopic"});
-   CycloneDDS::DDSPublisher<dds_messages::Command> pub(TEST_DOMAIN_ID, cfg, "CmdPub");
+   CycloneDDS::DDSPublisher<dds_messages::Command> pub(
+      TEST_DOMAIN_ID, makeEntry("TestCommandTopic"), "CmdPub");
 
    dds_messages::Command msg;
    msg.command_id("cmd-001");
@@ -103,13 +101,13 @@ TEST_F(DDSPublisherTest, Publish_Command_NoThrow)
    msg.timestamp_ms(3000);
    msg.sequence_number(1);
 
-   EXPECT_NO_THROW(pub.publish("TestCommandTopic", msg));
+   EXPECT_NO_THROW(pub.publish(msg));
 }
 
 TEST_F(DDSPublisherTest, Publish_MultipleSamples_SameTopic)
 {
-   auto cfg = makeConfig({"TestBatchTopic"});
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(TEST_DOMAIN_ID, cfg, "MultiPub");
+   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(
+      TEST_DOMAIN_ID, makeEntry("TestBatchTopic"), "MultiPub");
 
    for (int i = 0; i < 10; ++i)
    {
@@ -119,35 +117,14 @@ TEST_F(DDSPublisherTest, Publish_MultipleSamples_SameTopic)
       msg.unit("celsius");
       msg.timestamp_ms(static_cast<int64_t>(i) * 100);
 
-      EXPECT_NO_THROW(pub.publish("TestBatchTopic", msg));
+      EXPECT_NO_THROW(pub.publish(msg));
    }
 }
 
-TEST_F(DDSPublisherTest, Publish_MultipleTopics_CreatesWriters)
+TEST_F(DDSPublisherTest, TopicEntry_ReturnsConfiguredEntry)
 {
-   auto cfg = makeConfig({"TopicA", "TopicB", "TopicC"});
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(TEST_DOMAIN_ID, cfg, "MultiTopicPub");
+   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(
+      TEST_DOMAIN_ID, makeEntry("CheckTopic"), "EntryPub");
 
-   dds_messages::SensorReading msg;
-   msg.sensor_id("s1");
-   msg.value(10.0);
-
-   EXPECT_NO_THROW(pub.publish("TopicA", msg));
-   EXPECT_NO_THROW(pub.publish("TopicB", msg));
-   EXPECT_NO_THROW(pub.publish("TopicC", msg));
-
-   // Publishing again to the same topics should reuse writers
-   EXPECT_NO_THROW(pub.publish("TopicA", msg));
-   EXPECT_NO_THROW(pub.publish("TopicB", msg));
-}
-
-TEST_F(DDSPublisherTest, Publish_UnregisteredTopic_Throws)
-{
-   auto cfg = makeConfig({"RegisteredTopic"});
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(TEST_DOMAIN_ID, cfg, "ThrowPub");
-
-   dds_messages::SensorReading msg;
-   msg.sensor_id("s1");
-
-   EXPECT_THROW(pub.publish("UnregisteredTopic", msg), std::out_of_range);
+   EXPECT_EQ(pub.topicEntry().topicName, "CheckTopic");
 }

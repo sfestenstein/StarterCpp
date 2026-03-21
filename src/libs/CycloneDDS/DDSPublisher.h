@@ -9,29 +9,25 @@
 #include <dds/dds.hpp>
 
 // System headers
+#include <optional>
 #include <string>
-#include <unordered_map>
 
 namespace CycloneDDS
 {
 
 /**
- * @brief Generic DDS topic-based publisher using Cyclone DDS.
+ * @brief Generic single-topic DDS publisher using Cyclone DDS.
  *
- * Constructed with a DDSTopicConfig that defines every allowed topic and
- * its QoS policies.  When publish() is called, the writer QoS is looked
- * up from the config automatically, ensuring the publisher and any
- * matching subscriber share the same QoS.
+ * Constructed with a TopicEntry that defines the topic name and writer
+ * QoS.  The DataWriter is lazily created on the first publish() call.
  *
  * @tparam T The IDL-generated DDS data type to publish.
  *
  * Usage:
  * @code
- *    CycloneDDS::DDSTopicConfig config({
- *       {"SensorTopic", writerQos, readerQos},
- *    });
- *    CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(0, config);
- *    pub.publish("SensorTopic", msg);
+ *    CycloneDDS::TopicEntry entry{"SensorTopic", writerQos, readerQos};
+ *    CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(0, entry);
+ *    pub.publish(msg);
  * @endcode
  */
 template <typename T>
@@ -39,43 +35,41 @@ class DDSPublisher
 {
 public:
    /**
-    * @brief Construct a DDS publisher with a topic configuration.
+    * @brief Construct a DDS publisher for a single topic.
     *
     * @param domainId DDS domain ID (participants on the same domain discover each other)
-    * @param config   Topic configuration that defines allowed topics and their QoS
+    * @param entry    TopicEntry defining the topic name and writer QoS
     * @param participantName Human-readable name (logged, not used by DDS)
     */
    DDSPublisher(uint32_t domainId,
-                const DDSTopicConfig &config,
+                TopicEntry entry,
                 const std::string &participantName = "")
       : _participant(domainId)
       , _publisher(_participant)
-      , _config(config)
+      , _entry(std::move(entry))
    {
-      GPINFO("DDSPublisher created: domain={}, name={}", domainId, participantName);
+      GPINFO("DDSPublisher created: domain={}, topic={}, name={}",
+             domainId, _entry.topicName, participantName);
    }
 
    ~DDSPublisher() = default;
 
-   // Non-copyable, movable
+   // Non-copyable, non-movable
    DDSPublisher(const DDSPublisher &) = delete;
    DDSPublisher &operator=(const DDSPublisher &) = delete;
    DDSPublisher(DDSPublisher &&) = delete;
    DDSPublisher &operator=(DDSPublisher &&) = delete;
 
    /**
-    * @brief Publish a message on the given topic.
+    * @brief Publish a message on the configured topic.
     *
-    * The writer QoS is looked up from the DDSTopicConfig.
-    * The topic and writer are lazily created on first use.
+    * The DataWriter is lazily created on the first call.
     *
-    * @param topicName The DDS topic name (must be registered in the config)
     * @param message The data sample to publish
-    * @throws std::out_of_range if the topic is not in the config
     */
-   void publish(const std::string &topicName, const T &message)
+   void publish(const T &message)
    {
-      auto &writer = getOrCreateWriter(topicName);
+      auto &writer = getOrCreateWriter();
       writer.write(message);
    }
 
@@ -88,40 +82,32 @@ public:
    }
 
    /**
-    * @brief Get the topic configuration.
+    * @brief Get the topic entry.
     */
-   [[nodiscard]] const DDSTopicConfig &config() const
+   [[nodiscard]] const TopicEntry &topicEntry() const
    {
-      return _config;
+      return _entry;
    }
 
 private:
    using WriterType = dds::pub::DataWriter<T>;
    using TopicType = dds::topic::Topic<T>;
 
-   /**
-    * @brief Lazily create or retrieve a DataWriter for the given topic.
-    *        Writer QoS is taken from the DDSTopicConfig.
-    */
-   WriterType &getOrCreateWriter(const std::string &topicName)
+   WriterType &getOrCreateWriter()
    {
-      auto it = _writers.find(topicName);
-      if (it == _writers.end())
+      if (!_writer)
       {
-         const auto &qos = _config.writerQos(topicName);
-         auto topic = TopicType(_participant, topicName);
-         auto writer = WriterType(_publisher, topic, qos);
-         auto [inserted, _] = _writers.emplace(topicName, std::move(writer));
-         GPINFO("DDSPublisher: created writer for topic '{}'", topicName);
-         return inserted->second;
+         auto topic = TopicType(_participant, _entry.topicName);
+         _writer.emplace(_publisher, topic, _entry.writerQos);
+         GPINFO("DDSPublisher: created writer for topic '{}'", _entry.topicName);
       }
-      return it->second;
+      return *_writer;
    }
 
    dds::domain::DomainParticipant _participant;
    dds::pub::Publisher _publisher;
-   const DDSTopicConfig &_config;
-   std::unordered_map<std::string, WriterType> _writers;
+   TopicEntry _entry;
+   std::optional<WriterType> _writer;
 };
 
 } // namespace CycloneDDS

@@ -28,44 +28,41 @@ protected:
    void TearDown() override {}
 
    /**
-    * @brief Build a DDSTopicConfig covering the supplied topic names.
+    * @brief Build a TopicEntry with default QoS for the given topic name.
     */
-   static CycloneDDS::DDSTopicConfig makeConfig(
-      std::initializer_list<std::string> topics)
+   static CycloneDDS::TopicEntry makeEntry(const std::string &topic)
    {
-      std::vector<CycloneDDS::TopicEntry> entries;
-      for (const auto &t : topics)
+      return
       {
-         entries.push_back(
-            {t, dds::pub::qos::DataWriterQos{}, dds::sub::qos::DataReaderQos{}});
-      }
-      return CycloneDDS::DDSTopicConfig(entries);
+         .topicName = topic,
+         .writerQos = dds::pub::qos::DataWriterQos{},
+         .readerQos = dds::sub::qos::DataReaderQos{}
+     };
    }
 };
 
 TEST_F(DDSSubscriberTest, Construction_ValidDomain_Succeeds)
 {
-   auto cfg = makeConfig({"AnyTopic"});
    EXPECT_NO_THROW({
-      CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "TestSub");
+      CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+         TEST_DOMAIN_ID, makeEntry("AnyTopic"), "TestSub");
    });
 }
 
 TEST_F(DDSSubscriberTest, Subscribe_SingleTopic_NoThrow)
 {
-   auto cfg = makeConfig({"TestSubTopic"});
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "SubTest");
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      TEST_DOMAIN_ID, makeEntry("TestSubTopic"), "SubTest");
 
    EXPECT_NO_THROW(
-      sub.subscribe("TestSubTopic",
-         [](const dds_messages::SensorReading &) {})
+      sub.subscribe([](const dds_messages::SensorReading &) {})
    );
 }
 
 TEST_F(DDSSubscriberTest, StartStop_NoSubscriptions_NoThrow)
 {
-   auto cfg = makeConfig({"AnyTopic"});
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "StartStopTest");
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      TEST_DOMAIN_ID, makeEntry("AnyTopic"), "StartStopTest");
 
    EXPECT_NO_THROW(sub.start());
    EXPECT_TRUE(sub.isRunning());
@@ -76,8 +73,8 @@ TEST_F(DDSSubscriberTest, StartStop_NoSubscriptions_NoThrow)
 
 TEST_F(DDSSubscriberTest, StartStop_DoubleStart_Idempotent)
 {
-   auto cfg = makeConfig({"AnyTopic"});
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "DoubleStartTest");
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      TEST_DOMAIN_ID, makeEntry("AnyTopic"), "DoubleStartTest");
 
    sub.start();
    EXPECT_TRUE(sub.isRunning());
@@ -92,8 +89,8 @@ TEST_F(DDSSubscriberTest, StartStop_DoubleStart_Idempotent)
 
 TEST_F(DDSSubscriberTest, StartStop_DoubleStop_Idempotent)
 {
-   auto cfg = makeConfig({"AnyTopic"});
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "DoubleStopTest");
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      TEST_DOMAIN_ID, makeEntry("AnyTopic"), "DoubleStopTest");
 
    sub.start();
    sub.stop();
@@ -108,13 +105,14 @@ TEST_F(DDSSubscriberTest, EndToEnd_SensorReading_ReceivesData)
 {
    // Use a unique domain to avoid cross-test interference
    constexpr uint32_t E2E_DOMAIN = 97;
-   auto cfg = makeConfig({"E2ESensorTopic"});
+   auto entry = makeEntry("E2ESensorTopic");
 
    std::atomic<int> receivedCount{0};
    std::string receivedSensorId;
 
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(E2E_DOMAIN, cfg, "E2ESub");
-   sub.subscribe("E2ESensorTopic",
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      E2E_DOMAIN, entry, "E2ESub");
+   sub.subscribe(
       [&](const dds_messages::SensorReading &msg)
       {
          receivedSensorId = msg.sensor_id();
@@ -125,7 +123,8 @@ TEST_F(DDSSubscriberTest, EndToEnd_SensorReading_ReceivesData)
    // Give participant time to discover
    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(E2E_DOMAIN, cfg, "E2EPub");
+   CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(
+      E2E_DOMAIN, entry, "E2EPub");
 
    // Give publisher participant time to discover the subscriber
    std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -139,7 +138,7 @@ TEST_F(DDSSubscriberTest, EndToEnd_SensorReading_ReceivesData)
    msg.quality(100);
    msg.status(dds_messages::SensorStatus::SENSOR_ONLINE);
 
-   pub.publish("E2ESensorTopic", msg);
+   pub.publish(msg);
 
    // Wait for delivery (DDS discovery + delivery can take a moment)
    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
@@ -158,13 +157,14 @@ TEST_F(DDSSubscriberTest, EndToEnd_SensorReading_ReceivesData)
 TEST_F(DDSSubscriberTest, EndToEnd_TrackUpdate_ReceivesData)
 {
    constexpr uint32_t E2E_DOMAIN = 96;
-   auto cfg = makeConfig({"E2ETrackTopic"});
+   auto entry = makeEntry("E2ETrackTopic");
 
    std::atomic<int> receivedCount{0};
    std::string receivedTrackId;
 
-   CycloneDDS::DDSSubscriber<dds_messages::TrackUpdate> sub(E2E_DOMAIN, cfg, "TrackE2ESub");
-   sub.subscribe("E2ETrackTopic",
+   CycloneDDS::DDSSubscriber<dds_messages::TrackUpdate> sub(
+      E2E_DOMAIN, entry, "TrackE2ESub");
+   sub.subscribe(
       [&](const dds_messages::TrackUpdate &msg)
       {
          receivedTrackId = msg.track_id();
@@ -174,7 +174,8 @@ TEST_F(DDSSubscriberTest, EndToEnd_TrackUpdate_ReceivesData)
 
    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> pub(E2E_DOMAIN, cfg, "TrackE2EPub");
+   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> pub(
+      E2E_DOMAIN, entry, "TrackE2EPub");
 
    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -191,7 +192,7 @@ TEST_F(DDSSubscriberTest, EndToEnd_TrackUpdate_ReceivesData)
    msg.update_number(1);
    msg.confidence(0.9);
 
-   pub.publish("E2ETrackTopic", msg);
+   pub.publish(msg);
 
    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
    while (receivedCount.load() == 0 &&
@@ -206,13 +207,10 @@ TEST_F(DDSSubscriberTest, EndToEnd_TrackUpdate_ReceivesData)
    EXPECT_EQ(receivedTrackId, "track-e2e");
 }
 
-TEST_F(DDSSubscriberTest, Subscribe_UnregisteredTopic_Throws)
+TEST_F(DDSSubscriberTest, TopicEntry_ReturnsConfiguredEntry)
 {
-   auto cfg = makeConfig({"RegisteredTopic"});
-   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(TEST_DOMAIN_ID, cfg, "ThrowSub");
+   CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(
+      TEST_DOMAIN_ID, makeEntry("CheckTopic"), "EntrySub");
 
-   EXPECT_THROW(
-      sub.subscribe("UnregisteredTopic",
-         [](const dds_messages::SensorReading &) {}),
-      std::out_of_range);
+   EXPECT_EQ(sub.topicEntry().topicName, "CheckTopic");
 }

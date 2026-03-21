@@ -27,8 +27,8 @@ inline constexpr std::string_view TRACK_TOPIC  = "TrackTopic";
  *    defaults.defaultInitialize();
  *    const auto &config = defaults.config();
  *
- *    CycloneDDS::DDSPublisher<dds_messages::SensorReading>  pub(0, config);
- *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, config);
+ *    CycloneDDS::DDSPublisher<dds_messages::SensorReading>  pub(0, config.getEntry("SensorTopic"));
+ *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, config.getEntry("SensorTopic"));
  * @endcode
  */
 class CycloneDDSConfig

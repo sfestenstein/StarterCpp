@@ -78,12 +78,7 @@ jobs:
         run: ctest --preset ci-linux
 
       - name: Generate coverage report
-        run: |
-          cd build/ci-linux
-          LCOV_IGNORE="--ignore-errors inconsistent,mismatch,unused,negative"
-          lcov --capture --directory . --output-file coverage.info --gcov-tool gcov $LCOV_IGNORE
-          lcov --remove coverage.info '/usr/*' '*/build/*' '*/tests/*' --output-file coverage.info $LCOV_IGNORE
-          lcov --list coverage.info $LCOV_IGNORE
+        run: cmake --build --preset ci-linux --target coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -12,6 +12,7 @@ project(CycloneDDSLib CXX)
 
 find_package(CycloneDDS REQUIRED)
 find_package(CycloneDDS-CXX REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 # ---------------------------------------------------------------------------
 # Fix IMPORTED_LOCATION for CycloneDDS::idlc in non-Release configs.
@@ -48,6 +49,25 @@ endif()
 set_target_properties(DDSMessages PROPERTIES CXX_CLANG_TIDY "")
 
 # ---------------------------------------------------------------------------
+# JSON serialization helpers — auto-generated from .idl files
+# ---------------------------------------------------------------------------
+
+set(DDS_JSON_HELPERS_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/DdsJsonHelpers.h")
+
+add_custom_command(
+   OUTPUT  ${DDS_JSON_HELPERS_OUTPUT}
+   COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_json_helpers.py
+      --idl-dir ${CMAKE_CURRENT_SOURCE_DIR}/idl
+      --output  ${DDS_JSON_HELPERS_OUTPUT}
+      --accessor-style method
+   DEPENDS ${IDL_FILES}
+           ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_json_helpers.py
+   COMMENT "Generating DDS JSON helpers from IDL files"
+)
+add_custom_target(DdsJsonHelpersGen DEPENDS ${DDS_JSON_HELPERS_OUTPUT})
+
+# ---------------------------------------------------------------------------
 # CycloneDDSLib target (compiled library — .cpp sources + header-only templates)
 # ---------------------------------------------------------------------------
 
@@ -58,7 +78,10 @@ add_library(${PROJECT_NAME} STATIC ${CYCLONE_DDS_SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
+
+add_dependencies(${PROJECT_NAME} DdsJsonHelpersGen)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
    DDSMessages

@@ -22,6 +22,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Export compile commands for clang-tidy and IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Add cmake/ to module path for Coverage.cmake etc.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
@@ -173,6 +176,13 @@ if(BUILD_TESTS)
    add_subdirectory(tests/PubSubTests)
    add_subdirectory(tests/DDSTests)
    add_subdirectory(tests/Vita49_2Tests)
+
+   # Unified coverage target — runs all tests, generates a combined report
+   include(Coverage)
+   add_unified_coverage_target(
+      NAME    coverage
+      TITLE   "StarterCpp Coverage Report"
+   )
 endif()
 
 # =============================================================================

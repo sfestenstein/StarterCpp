@@ -5,6 +5,8 @@
  * Defines sensor reading messages for telemetry and monitoring.
  */
 
+#include "MessageHeader.idl"
+
 module dds_messages
 {
 
@@ -19,6 +21,7 @@ module dds_messages
    @topic
    struct SensorReading
    {
+      MessageHeader header;
       @key string<64> sensor_id;
       string<128> sensor_name;
       double value;

@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <vector>
 
 namespace Omniscope
 {
@@ -17,19 +16,22 @@ namespace Omniscope
  * server, message recording, and the PlaybackEngine.
  *
  * Workflow:
- *   1. Construct with transports and an HTTP port.
- *   2. Call run() — blocks until interrupted (SIGINT / SIGTERM).
- *   3. Browser clients connect at http://localhost:<port>.
+ *   1. Construct with an HTTP port.
+ *   2. Add transports via addTransport().
+ *   3. Call run() — blocks until interrupted (SIGINT / SIGTERM).
+ *   4. Browser clients connect at http://localhost:<port>.
  */
 class OmniscopeApp
 {
 public:
-   OmniscopeApp(std::vector<std::unique_ptr<ITransport>> transports,
-                 uint16_t httpPortArg);
+   explicit OmniscopeApp(uint16_t httpPortArg);
    ~OmniscopeApp();
 
    OmniscopeApp(const OmniscopeApp &) = delete;
    OmniscopeApp &operator=(const OmniscopeApp &) = delete;
+
+   /// Register a transport.  Must be called before run().
+   void addTransport(std::unique_ptr<ITransport> transport);
 
    /// Run the event loop.  Blocks until the global stop signal is raised.
    void run();

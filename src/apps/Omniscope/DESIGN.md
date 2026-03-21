@@ -126,7 +126,7 @@ sequenceDiagram
     Note right of App: Each incoming message is<br/>appended as JSON-Lines
 
     B->>App: {"type":"record_stop"}
-    App-->>B: {"type":"recording_stopped","filename":"ipc_recording_*.ddsrec"}
+    App-->>B: {"type":"recording_stopped","filename":"Omniscope_recording_*.ddsrec"}
 
     Note over B,DT: Playback
     B->>App: POST /playback/load (file body)

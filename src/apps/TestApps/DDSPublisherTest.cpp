@@ -43,9 +43,11 @@ int main(int argc, char *argv[])
    defaults.defaultInitialize();
    const auto &config = defaults.config();
 
-   // Create typed publishers using the shared config
-   CycloneDDS::DDSPublisher<dds_messages::SensorReading> sensorPub(domainId, config, "SensorPublisher");
-   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> trackPub(domainId, config, "TrackPublisher");
+   // Create typed publishers — each gets its own TopicEntry
+   CycloneDDS::DDSPublisher<dds_messages::SensorReading> sensorPub(
+      domainId, config.getEntry(std::string(CycloneDDS::SENSOR_TOPIC)), "SensorPublisher");
+   CycloneDDS::DDSPublisher<dds_messages::TrackUpdate> trackPub(
+      domainId, config.getEntry(std::string(CycloneDDS::TRACK_TOPIC)), "TrackPublisher");
 
    std::random_device rd;
    std::mt19937 gen(rd());
@@ -76,7 +78,7 @@ int main(int argc, char *argv[])
       sensor.longitude(-122.4194);
       sensor.altitude(10.0);
 
-      sensorPub.publish(std::string(CycloneDDS::SENSOR_TOPIC), sensor);
+      sensorPub.publish(sensor);
 
       // Publish a track update
       dds_messages::TrackUpdate track;
@@ -92,7 +94,7 @@ int main(int argc, char *argv[])
       track.update_number(sequence);
       track.confidence(0.95);
 
-      trackPub.publish(std::string(CycloneDDS::TRACK_TOPIC), track);
+      trackPub.publish(track);
 
       ++sequence;
       if (sequence % 100 == 0)

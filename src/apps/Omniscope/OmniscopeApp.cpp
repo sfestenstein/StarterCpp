@@ -5,9 +5,11 @@
 
 #include <crow.h>
 
+#include <cassert>
 #include <format>
 #include <fstream>
 #include <mutex>
+#include <optional>
 #include <unordered_set>
 
 // ============================================================================
@@ -27,10 +29,8 @@ namespace Omniscope
 
 struct OmniscopeApp::Impl
 {
-   Impl(std::vector<std::unique_ptr<ITransport>> transportsArg, uint16_t httpPortArg)
-      : transports(std::move(transportsArg))
-      , httpPort(httpPortArg)
-      , playback(*this->transports.front())
+   explicit Impl(uint16_t httpPortArg)
+      : httpPort(httpPortArg)
    {
    }
 
@@ -74,7 +74,7 @@ struct OmniscopeApp::Impl
 
    // --- Playback ------------------------------------------------------------
 
-   PlaybackEngine playback;
+   std::optional<PlaybackEngine> playback;
 
    // --- Message handling ----------------------------------------------------
 
@@ -152,7 +152,7 @@ struct OmniscopeApp::Impl
       auto now = std::chrono::system_clock::now();
       auto epochSec = std::chrono::duration_cast<std::chrono::seconds>(
          now.time_since_epoch()).count();
-      recFilename = "ipc_recording_" + std::to_string(epochSec) + ".ddsrec";
+      recFilename = "omniscope_recording_" + std::to_string(epochSec) + ".ddsrec";
 
       recFile.open(recFilename, std::ios::out | std::ios::trunc);
       recording = true;
@@ -216,7 +216,7 @@ struct OmniscopeApp::Impl
       }
       else if (type == "playback_start")
       {
-         playback.start(
+         playback->start(
             // Progress callback
             [this](size_t current, size_t total) {
                crow::json::wvalue n;
@@ -235,12 +235,12 @@ struct OmniscopeApp::Impl
          // Notify start
          crow::json::wvalue n;
          n["type"]  = "playback_started";
-         n["count"] = playback.messageCount();
+         n["count"] = playback->messageCount();
          broadcastWs(n.dump());
       }
       else if (type == "playback_stop")
       {
-         playback.stop();
+         playback->stop();
       }
    }
 
@@ -263,7 +263,7 @@ struct OmniscopeApp::Impl
          if (req.body.empty())
             return crow::response(400, "Empty body");
 
-         auto count = playback.loadRecording(req.body);
+         auto count = playback->loadRecording(req.body);
 
          // Notify connected clients
          crow::json::wvalue notification;
@@ -304,20 +304,27 @@ struct OmniscopeApp::Impl
 //  OmniscopeApp public API
 // ============================================================================
 
-OmniscopeApp::OmniscopeApp(
-   std::vector<std::unique_ptr<ITransport>> transports,
-   uint16_t httpPort)
-   : _impl(std::make_unique<Impl>(std::move(transports), httpPort))
+OmniscopeApp::OmniscopeApp(uint16_t httpPort)
+   : _impl(std::make_unique<Impl>(httpPort))
 {
 }
 
 OmniscopeApp::~OmniscopeApp()
 {
-   _impl->playback.stop();
+   if (_impl->playback)
+      _impl->playback->stop();
+}
+
+void OmniscopeApp::addTransport(std::unique_ptr<ITransport> transport)
+{
+   _impl->transports.push_back(std::move(transport));
 }
 
 void OmniscopeApp::run()
 {
+   assert(!_impl->transports.empty() && "At least one transport must be added before run()");
+
+   _impl->playback.emplace(*_impl->transports.front());
    _impl->setupRoutes();
 
    GPINFO("Omniscope starting on http://localhost:{}", _impl->httpPort);
@@ -328,7 +335,7 @@ void OmniscopeApp::run()
    _impl->crowApp.port(_impl->httpPort).multithreaded().run();
 
    GPINFO("Omniscope shutting down...");
-   _impl->playback.stop();
+   _impl->playback->stop();
 }
 
 } // namespace Omniscope

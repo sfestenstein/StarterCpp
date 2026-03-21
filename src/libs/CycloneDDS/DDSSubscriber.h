@@ -11,30 +11,26 @@
 // System headers
 #include <atomic>
 #include <functional>
+#include <optional>
 #include <string>
 #include <thread>
-#include <vector>
 
 namespace CycloneDDS
 {
 
 /**
- * @brief Generic DDS topic-based subscriber using Cyclone DDS.
+ * @brief Generic single-topic DDS subscriber using Cyclone DDS.
  *
- * Constructed with a DDSTopicConfig that defines every allowed topic and
- * its QoS policies.  When subscribe() is called, the reader QoS is
- * looked up from the config automatically, ensuring the subscriber and
- * any matching publisher share the same QoS.
+ * Constructed with a TopicEntry that defines the topic name and reader
+ * QoS.  Call subscribe() with a handler, then start() to begin polling.
  *
  * @tparam T The IDL-generated DDS data type to subscribe to.
  *
  * Usage:
  * @code
- *    CycloneDDS::DDSTopicConfig config({
- *       {"SensorTopic", writerQos, readerQos},
- *    });
- *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, config);
- *    sub.subscribe("SensorTopic", [](const dds_messages::SensorReading &msg) {
+ *    CycloneDDS::TopicEntry entry{"SensorTopic", writerQos, readerQos};
+ *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, entry);
+ *    sub.subscribe([](const dds_messages::SensorReading &msg) {
  *       std::cout << "Received: " << msg.sensor_id() << std::endl;
  *    });
  *    sub.start();
@@ -52,21 +48,22 @@ public:
    using MessageHandler = std::function<void(const T &)>;
 
    /**
-    * @brief Construct a DDS subscriber with a topic configuration.
+    * @brief Construct a DDS subscriber for a single topic.
     *
     * @param domainId DDS domain ID (must match the publisher's domain)
-    * @param config   Topic configuration that defines allowed topics and their QoS
+    * @param entry    TopicEntry defining the topic name and reader QoS
     * @param participantName Human-readable name (logged, not used by DDS)
     */
    DDSSubscriber(uint32_t domainId,
-                 const DDSTopicConfig &config,
+                 TopicEntry entry,
                  const std::string &participantName = "")
       : _participant(domainId)
       , _subscriber(_participant)
-      , _config(config)
+      , _entry(std::move(entry))
       , _running(false)
    {
-      GPINFO("DDSSubscriber created: domain={}, name={}", domainId, participantName);
+      GPINFO("DDSSubscriber created: domain={}, topic={}, name={}",
+             domainId, _entry.topicName, participantName);
    }
 
    ~DDSSubscriber()
@@ -81,31 +78,24 @@ public:
    DDSSubscriber &operator=(DDSSubscriber &&) = delete;
 
    /**
-    * @brief Subscribe to a topic with a callback handler.
+    * @brief Subscribe with a callback handler.
     *
-    * The reader QoS is looked up from the DDSTopicConfig.
-    * Must be called before start(). Multiple topics can be subscribed to.
+    * The reader is created using the QoS from the TopicEntry.
+    * Must be called before start().
     *
-    * @param topicName The DDS topic name (must be registered in the config)
     * @param handler Callback invoked for each received sample
-    * @throws std::out_of_range if the topic is not in the config
     */
-   void subscribe(const std::string &topicName, MessageHandler handler)
+   void subscribe(MessageHandler handler)
    {
-      const auto &qos = _config.readerQos(topicName);
-      auto topic = dds::topic::Topic<T>(_participant, topicName);
-      auto reader = dds::sub::DataReader<T>(_subscriber, topic, qos);
+      auto topic = dds::topic::Topic<T>(_participant, _entry.topicName);
+      _reader.emplace(_subscriber, topic, _entry.readerQos);
+      _handler = std::move(handler);
 
-      _subscriptions.emplace_back(
-         Subscription{topicName, std::move(reader), std::move(handler)});
-
-      GPINFO("DDSSubscriber: subscribed to topic '{}'", topicName);
+      GPINFO("DDSSubscriber: subscribed to topic '{}'", _entry.topicName);
    }
 
    /**
     * @brief Start the polling thread for receiving messages.
-    *
-    * Launches a background thread that polls all subscribed readers.
     */
    void start()
    {
@@ -120,8 +110,6 @@ public:
 
    /**
     * @brief Stop the polling thread.
-    *
-    * Blocks until the polling thread has exited.
     */
    void stop()
    {
@@ -154,36 +142,26 @@ public:
    }
 
    /**
-    * @brief Get the topic configuration.
+    * @brief Get the topic entry.
     */
-   [[nodiscard]] const DDSTopicConfig &config() const
+   [[nodiscard]] const TopicEntry &topicEntry() const
    {
-      return _config;
+      return _entry;
    }
 
 private:
-   struct Subscription
-   {
-      std::string topicName;
-      dds::sub::DataReader<T> reader;
-      MessageHandler handler;
-   };
-
-   /**
-    * @brief Background loop that polls all readers for new data.
-    */
    void pollLoop()
    {
       while (_running.load())
       {
-         for (auto &sub : _subscriptions)
+         if (_reader && _handler)
          {
-            auto samples = sub.reader.take();
+            auto samples = _reader->take();
             for (const auto &sample : samples)
             {
                if (sample.info().valid())
                {
-                  sub.handler(sample.data());
+                  _handler(sample.data());
                }
             }
          }
@@ -193,8 +171,9 @@ private:
 
    dds::domain::DomainParticipant _participant;
    dds::sub::Subscriber _subscriber;
-   const DDSTopicConfig &_config;
-   std::vector<Subscription> _subscriptions;
+   TopicEntry _entry;
+   std::optional<dds::sub::DataReader<T>> _reader;
+   MessageHandler _handler;
    std::atomic<bool> _running;
    std::thread _pollThread;
 };

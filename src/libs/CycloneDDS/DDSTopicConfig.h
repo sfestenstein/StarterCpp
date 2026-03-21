@@ -49,11 +49,12 @@ struct TopicEntry
  *       {"TrackTopic",   wQos, rQos},
  *    });
  *
- *    CycloneDDS::DDSPublisher<dds_messages::SensorReading>  pub(0, config);
- *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, config);
+ *    auto sensorEntry = config.getEntry("SensorTopic");
+ *    CycloneDDS::DDSPublisher<dds_messages::SensorReading>  pub(0, sensorEntry);
+ *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, sensorEntry);
  *
- *    pub.publish("SensorTopic", msg);           // QoS looked up automatically
- *    sub.subscribe("SensorTopic", handler);     // QoS looked up automatically
+ *    pub.publish(msg);                       // topic known from entry
+ *    sub.subscribe(handler);                 // topic known from entry
  * @endcode
  */
 class DDSTopicConfig

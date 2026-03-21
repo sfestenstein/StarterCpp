@@ -25,6 +25,19 @@
             "CMAKE_MAP_IMPORTED_CONFIG_DEBUG": "Release",
             "BUILD_TESTS": "ON",
             "ENABLE_SANITIZERS": "ON",
+            "ENABLE_CLANG_TIDY": "OFF"
+         }
+      },
+      {
+         "name": "debug-With-Clang-Tidy",
+         "displayName": "Debug Clang Tidy",
+         "inherits": "conan-default",
+         "toolchainFile": "${sourceDir}/build/build/Release/generators/conan_toolchain.cmake",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_MAP_IMPORTED_CONFIG_DEBUG": "Release",
+            "BUILD_TESTS": "ON",
+            "ENABLE_SANITIZERS": "ON",
             "ENABLE_CLANG_TIDY": "ON"
          }
       },

@@ -5,6 +5,8 @@
  * Defines track messages for position reporting and situational awareness.
  */
 
+#include "MessageHeader.idl"
+
 module dds_messages
 {
 
@@ -20,6 +22,7 @@ module dds_messages
    @topic
    struct TrackUpdate
    {
+      MessageHeader header;
       @key string<64> track_id;
       string<128> track_name;
       double latitude;
