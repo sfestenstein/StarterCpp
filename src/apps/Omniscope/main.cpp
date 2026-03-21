@@ -8,7 +8,7 @@
  */
 
 #include "OmniscopeApp.h"
-#include "DdsTransport.h"
+#include "TransportDds.h"
 #include "CommonUtils/GeneralLogger.h"
 
 #include <cstdint>
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
    if (argc > 2) httpPort = static_cast<uint16_t>(std::stoul(argv[2]));
 
    Omniscope::OmniscopeApp app(httpPort);
-   app.addTransport(std::make_unique<Omniscope::DdsTransport>(domainId));
+   app.addTransport(std::make_unique<Omniscope::TransportDds>(domainId));
    app.run();
 
    return 0;

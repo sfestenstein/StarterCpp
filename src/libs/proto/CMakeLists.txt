@@ -65,7 +65,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
          --proto_path=${CMAKE_CURRENT_LIST_DIR}/proto-messages
          --cpp_out=${PROTO_GENERATED_DIR}
          ${PROTO_FILE}
-      DEPENDS ${PROTO_FILE}
+      DEPENDS ${PROTO_FILE} ${PROTO_FILES}
       COMMENT "Generating C++ files from ${PROTO_NAME}.proto"
       VERBATIM
    )

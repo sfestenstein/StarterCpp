@@ -190,7 +190,7 @@ The monitor lives in `src/apps/Omniscope/` and is structured around a clean tran
 | File | Purpose |
 |------|---------|
 | `ITransport.h` | Abstract transport interface |
-| `DdsTransport.h/.cpp` | Eclipse Cyclone DDS transport (pImpl) |
+| `TransportDds.h/.cpp` | Eclipse Cyclone DDS transport (pImpl) |
 | `PlaybackEngine.h/.cpp` | Recording load + threaded playback |
 | `OmniscopeApp.h/.cpp` | Crow HTTP/WebSocket orchestrator (pImpl) |
 | `CrowCompat.h` | C++20 / libc++ compatibility shim for Crow |
@@ -199,7 +199,7 @@ The monitor lives in `src/apps/Omniscope/` and is structured around a clean tran
 
 ### Adding a New Transport
 
-1. Create a class that implements `Omniscope::ITransport` (see `DdsTransport` for reference)
+1. Create a class that implements `Omniscope::ITransport` (see `TransportDds` for reference)
 2. Instantiate it in `main.cpp` and push it into the transports vector
 3. Rebuild — the monitor automatically discovers topics from all registered transports
 

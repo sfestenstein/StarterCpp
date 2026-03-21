@@ -261,7 +261,7 @@ int myFunction(int param1, std::string_view param2);
 ### Adding a New Omniscope Transport
 
 1. Create `src/apps/Omniscope/NewTransport.h` and `NewTransport.cpp`
-2. Implement the `Omniscope::ITransport` interface (see `DdsTransport` for reference)
+2. Implement the `Omniscope::ITransport` interface (see `TransportDds` for reference)
 3. In `src/apps/Omniscope/main.cpp`, instantiate the transport and push it into the transports vector:
    ```cpp
    auto newTransport = std::make_unique<Omniscope::NewTransport>(/* ... */);

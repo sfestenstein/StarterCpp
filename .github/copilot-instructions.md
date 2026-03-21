@@ -19,7 +19,7 @@ StarterCpp/
 │   ├── apps/               # Executables
 │   │   ├── Omniscope/          # Web-based IPC traffic inspector
 │   │   │   ├── ITransport.h          # Abstract transport interface
-│   │   │   ├── DdsTransport.h/.cpp   # DDS transport (pImpl)
+│   │   │   ├── TransportDds.h/.cpp    # DDS transport (pImpl)
 │   │   │   ├── PlaybackEngine.h/.cpp # Recording playback engine
 │   │   │   ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
 │   │   │   ├── CrowCompat.h          # C++20 atomic shim for Crow
@@ -191,7 +191,7 @@ private:
 ### Adding a New Omniscope Transport
 
 1. Create `src/apps/Omniscope/NewTransport.h` and `NewTransport.cpp`
-2. Implement the `Omniscope::ITransport` interface (see `DdsTransport` for reference)
+2. Implement the `Omniscope::ITransport` interface (see `TransportDds` for reference)
 3. Instantiate in `src/apps/Omniscope/main.cpp` and push into the transports vector
 4. Source files are auto-discovered via `file(GLOB)` in `Omniscope/CMakeLists.txt`
 5. Re-run CMake configure to pick up new files

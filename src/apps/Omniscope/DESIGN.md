@@ -26,7 +26,7 @@ graph TD
     subgraph "Omniscope Process"
         App[OmniscopeApp<br/>Crow HTTP + WS]
         PE[PlaybackEngine]
-        DT[DdsTransport]
+        DT[TransportDds]
 
         App -- "subscribe / unsubscribe<br/>record / playback" --> DT
         App -- "start / stop / load" --> PE
@@ -61,9 +61,9 @@ classDiagram
         +publishFromJson(topic, jsonData)
     }
 
-    class DdsTransport {
+    class TransportDds {
         -Impl* _impl
-        +DdsTransport(domainId)
+        +TransportDds(domainId)
         +subscribe(topic, callback)
         +unsubscribe(topic)
         +publishFromJson(topic, jsonData)
@@ -86,7 +86,7 @@ classDiagram
         +isPlaying() bool
     }
 
-    ITransport <|.. DdsTransport : implements
+    ITransport <|.. TransportDds : implements
     OmniscopeApp o-- ITransport : transports
     OmniscopeApp *-- PlaybackEngine
     PlaybackEngine --> ITransport : publishes via
@@ -100,7 +100,7 @@ classDiagram
 sequenceDiagram
     participant B as Browser
     participant App as OmniscopeApp
-    participant DT as DdsTransport
+    participant DT as TransportDds
     participant DDS as DDS Domain
 
     B->>App: WebSocket {"type":"subscribe","topic":"SensorTopic"}
@@ -118,7 +118,7 @@ sequenceDiagram
     participant B as Browser
     participant App as OmniscopeApp
     participant PE as PlaybackEngine
-    participant DT as DdsTransport
+    participant DT as TransportDds
 
     Note over B,App: Recording
     B->>App: {"type":"record_start"}
@@ -151,7 +151,7 @@ flowchart TD
     STOP_CROW --> DTOR["~OmniscopeApp"]
     DTOR --> DTOR_PB["~PlaybackEngine — stop() (no-op)"]
     DTOR --> DTOR_CROW["~crow::SimpleApp"]
-    DTOR --> DTOR_DT["~DdsTransport<br/>stop DDS subscribers"]
+    DTOR --> DTOR_DT["~TransportDds<br/>stop DDS subscribers"]
 ```
 
 Crow's built-in signal handlers are cleared via `signal_clear()` before
@@ -225,7 +225,7 @@ src/apps/Omniscope/
 ├── CMakeLists.txt          # Build config, HTML embedding, link Crow + CycloneDDS
 ├── CrowCompat.h            # C++20 / libc++ compatibility shim for Crow
 ├── ITransport.h            # Abstract transport interface
-├── DdsTransport.h/.cpp     # Cyclone DDS transport (pImpl)
+├── TransportDds.h/.cpp     # Cyclone DDS transport (pImpl)
 ├── PlaybackEngine.h/.cpp   # Recording playback with original timing
 ├── OmniscopeApp.h/.cpp     # Crow HTTP/WS orchestrator (pImpl)
 ├── main.cpp                # Entry point, argument parsing

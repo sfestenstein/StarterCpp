@@ -6,9 +6,10 @@
 
 #include "GeneralLogger.h"
 
-#include <sensor_data.pb.h>
-#include <commands.pb.h>
-#include <configuration.pb.h>
+#include <sensor_reading.pb.h>
+#include <sensor_data_batch.pb.h>
+#include <command.pb.h>
+#include <application_config.pb.h>
 
 // NOLINTNEXTLINE
 int main(int argc, char* argv[]) 
@@ -43,8 +44,8 @@ int main(int argc, char* argv[])
         auto epochMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
 
-        // Create and publish a SensorReading message
-        messages::SensorReading sensorReading;
+        // Create and publish a SensorReadingMsg message
+        messages::SensorReadingMsg sensorReading;
         sensorReading.set_sensor_id("sensor-001");
         sensorReading.set_sensor_name("Temperature Sensor");
         sensorReading.set_value(22.5 + tempDist(gen));  // Random temperature 22.5-32.5
@@ -65,8 +66,8 @@ int main(int argc, char* argv[])
         GPINFO("Published SensorReading: {} = {:.1f} {}", 
                sensorReading.sensor_name(), sensorReading.value(), sensorReading.unit());
 
-        // Create and publish a SensorDataBatch message
-        messages::SensorDataBatch batch;
+        // Create and publish a SensorDataBatchMsg message
+        messages::SensorDataBatchMsg batch;
         batch.set_batch_id("batch-" + std::to_string(messageCount));
         batch.set_created_at_ms(epochMs);
         batch.set_source_system("TestPublisher");
@@ -91,7 +92,7 @@ int main(int argc, char* argv[])
         // Create and publish a Command message every 5th iteration
         if (messageCount % 5 == 0)
         {
-            messages::Command command;
+            messages::CommandMsg command;
             command.set_command_id("cmd-" + std::to_string(messageCount));
             command.set_type(messages::COMMAND_TYPE_QUERY);
             command.set_target("sensor-001");

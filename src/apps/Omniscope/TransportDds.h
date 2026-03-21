@@ -1,5 +1,5 @@
-#ifndef DDSTRANSPORT_H_
-#define DDSTRANSPORT_H_
+#ifndef TRANSPORTDDS_H_
+#define TRANSPORTDDS_H_
 
 #include "ITransport.h"
 
@@ -15,14 +15,14 @@ namespace Omniscope
  * Subscribes/publishes on DDS topics defined by CycloneDDSConfig.
  * Uses pImpl to keep Cyclone DDS headers out of the public interface.
  */
-class DdsTransport : public ITransport
+class TransportDds : public ITransport
 {
 public:
-   explicit DdsTransport(uint32_t domainId);
-   ~DdsTransport() override;
+   explicit TransportDds(uint32_t domainId);
+   ~TransportDds() override;
 
-   DdsTransport(const DdsTransport &) = delete;
-   DdsTransport &operator=(const DdsTransport &) = delete;
+   TransportDds(const TransportDds &) = delete;
+   TransportDds &operator=(const TransportDds &) = delete;
 
    [[nodiscard]] std::string name() const override;
    [[nodiscard]] std::vector<std::string> topicNames() const override;
@@ -41,4 +41,4 @@ private:
 
 } // namespace Omniscope
 
-#endif // DDSTRANSPORT_H_
+#endif // TRANSPORTDDS_H_

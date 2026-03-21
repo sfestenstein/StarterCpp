@@ -25,7 +25,7 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 │  │                        Omniscope                                         │   │
 │  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐     │   │
 │  │  │ OmniscopeApp  │  │PlaybackEngine│  │ ITransport (DDS, Zyre…) │     │   │
-│  │  │ (Crow server) │  │ (recording)  │  │ DdsTransport            │     │   │
+│  │  │ (Crow server) │  │ (recording)  │  │ TransportDds            │     │   │
 │  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                               │├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
@@ -213,10 +213,10 @@ Demonstrates:
 #### Omniscope (`src/apps/Omniscope/`)
 
 A web-based traffic inspector for IPC pub/sub transports:
-- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `DdsTransport` and is extensible to Zyre, ZMQ, etc.
+- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `TransportDds` and is extensible to Zyre, ZMQ, etc.
 - **OmniscopeApp** — orchestrates transports, Crow HTTP/WebSocket server, recording, and playback (pImpl pattern)
 - **PlaybackEngine** — loads `.ddsrec` files and replays them in a background thread with original inter-message timing (capped at 5 s per gap), publishing back through the transport
-- **DdsTransport** — concrete transport using Eclipse Cyclone DDS; pImpl hides all DDS headers
+- **TransportDds** — concrete transport using Eclipse Cyclone DDS; pImpl hides all DDS headers
 - **CrowCompat.h** — C++20 / libc++ compatibility shim (atomic `operator<<`) for Crow 1.3.x
 - **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, load/playback with progress bar
 

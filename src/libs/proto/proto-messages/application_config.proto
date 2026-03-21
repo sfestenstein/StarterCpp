@@ -1,9 +1,9 @@
 /**
- * @file configuration.proto
+ * @file application_config.proto
  * @brief Protocol buffer definitions for application configuration
  *
- * This proto file defines messages for storing and transmitting
- * application configuration, suitable for distributed systems
+ * This proto file defines the ApplicationConfigMsg publishable message
+ * and its associated helper types, suitable for distributed systems
  * that need to share or synchronize configuration.
  */
 
@@ -11,39 +11,44 @@ syntax = "proto3";
 
 package messages;
 
+import "message_header.proto";
+
 option cc_enable_arenas = true;
 
 /**
  * Root configuration message containing all application settings
  */
-message ApplicationConfig
+message ApplicationConfigMsg
 {
+   // Common message header
+   MessageHeader header = 1;
+
    // Configuration version for compatibility checking
-   int32 version = 1;
+   int32 version = 2;
 
    // Name of this configuration profile
-   string profile_name = 2;
+   string profile_name = 3;
 
    // General application settings
-   GeneralSettings general = 3;
+   GeneralSettings general = 4;
 
    // Logging configuration
-   LoggingConfig logging = 4;
+   LoggingConfig logging = 5;
 
    // Network configuration
-   NetworkConfig network = 5;
+   NetworkConfig network = 6;
 
    // Feature flags
-   FeatureFlags features = 6;
+   FeatureFlags features = 7;
 
    // Custom settings as key-value pairs
-   map<string, string> custom_settings = 7;
+   map<string, string> custom_settings = 8;
 
    // When this configuration was last modified
-   int64 last_modified_ms = 8;
+   int64 last_modified_ms = 9;
 
    // Who last modified this configuration
-   string modified_by = 9;
+   string modified_by = 10;
 }
 
 /**

@@ -1,4 +1,4 @@
-#include "DdsTransport.h"
+#include "TransportDds.h"
 
 #include "CycloneDDS/CycloneDDSConfig.h"
 #include "CycloneDDS/DDSPublisher.h"
@@ -16,10 +16,10 @@ namespace Omniscope
 {
 
 // ============================================================================
-//  DdsTransport::Impl
+//  TransportDds::Impl
 // ============================================================================
 
-struct DdsTransport::Impl
+struct TransportDds::Impl
 {
    explicit Impl(uint32_t domainIdArg)
       : domainId(domainIdArg)
@@ -59,16 +59,16 @@ struct DdsTransport::Impl
 };
 
 // ============================================================================
-//  DdsTransport public API
+//  TransportDds public API
 // ============================================================================
 
-DdsTransport::DdsTransport(uint32_t domainId)
+TransportDds::TransportDds(uint32_t domainId)
    : _impl(std::make_unique<Impl>(domainId))
 {
-   GPINFO("DdsTransport: created on domain {}", domainId);
+   GPINFO("TransportDds: created on domain {}", domainId);
 }
 
-DdsTransport::~DdsTransport()
+TransportDds::~TransportDds()
 {
    // Stop all active subscriptions
    for (const auto &topic : _impl->activeTopics)
@@ -78,18 +78,18 @@ DdsTransport::~DdsTransport()
    }
 }
 
-std::string DdsTransport::name() const
+std::string TransportDds::name() const
 {
    return "DDS";
 }
 
-std::vector<std::string> DdsTransport::topicNames() const
+std::vector<std::string> TransportDds::topicNames() const
 {
    return {std::string(CycloneDDS::SENSOR_TOPIC),
            std::string(CycloneDDS::TRACK_TOPIC)};
 }
 
-void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
+void TransportDds::subscribe(const std::string &topic, MessageCallback callback)
 {
    std::lock_guard lock(_impl->mutex);
    if (_impl->activeTopics.contains(topic)) return;
@@ -115,10 +115,10 @@ void DdsTransport::subscribe(const std::string &topic, MessageCallback callback)
       _impl->activeTopics.insert(topic);
    }
 
-   GPINFO("DdsTransport: subscribed to {}", topic);
+   GPINFO("TransportDds: subscribed to {}", topic);
 }
 
-void DdsTransport::unsubscribe(const std::string &topic)
+void TransportDds::unsubscribe(const std::string &topic)
 {
    std::lock_guard lock(_impl->mutex);
    if (!_impl->activeTopics.contains(topic)) return;
@@ -134,16 +134,16 @@ void DdsTransport::unsubscribe(const std::string &topic)
       _impl->activeTopics.erase(topic);
    }
 
-   GPINFO("DdsTransport: unsubscribed from {}", topic);
+   GPINFO("TransportDds: unsubscribed from {}", topic);
 }
 
-bool DdsTransport::isSubscribed(const std::string &topic) const
+bool TransportDds::isSubscribed(const std::string &topic) const
 {
    std::lock_guard lock(_impl->mutex);
    return _impl->activeTopics.contains(topic);
 }
 
-void DdsTransport::publishFromJson(const std::string &topic,
+void TransportDds::publishFromJson(const std::string &topic,
                                    const std::string &jsonData)
 {
    auto data = crow::json::load(jsonData);

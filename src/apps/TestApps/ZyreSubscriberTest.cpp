@@ -8,9 +8,10 @@
 
 #include <czmq.h>
 
-#include <sensor_data.pb.h>
-#include <commands.pb.h>
-#include <configuration.pb.h>
+#include <sensor_reading.pb.h>
+#include <sensor_data_batch.pb.h>
+#include <command.pb.h>
+#include <application_config.pb.h>
 
 // NOLINTNEXTLINE
 int main(int argc, char* argv[]) 
@@ -36,10 +37,10 @@ int main(int argc, char* argv[])
     // Subscribe to SensorReading messages
     sub.subscribe("SensorReading", [](const std::string &topic, const std::string &data)
     {
-        messages::SensorReading msg;
+        messages::SensorReadingMsg msg;
         if (msg.ParseFromString(data)) 
         {
-            GPINFO("Received SensorReading on {}: {} = {:.2f} {} (quality: {}, status: {})",
+            GPINFO("Received SensorReadingMsg on {}: {} = {:.2f} {} (quality: {}, status: {})",
                    topic, msg.sensor_name(), msg.value(), msg.unit(), 
                    msg.quality(), static_cast<int>(msg.status()));
             
@@ -60,17 +61,17 @@ int main(int argc, char* argv[])
         } 
         else 
         {
-            GPERROR("Failed to parse SensorReading");
+            GPERROR("Failed to parse SensorReadingMsg");
         }
     });
 
     // Subscribe to SensorDataBatch messages
     sub.subscribe("SensorDataBatch", [](const std::string &topic, const std::string &data)
     {
-        messages::SensorDataBatch msg;
+        messages::SensorDataBatchMsg msg;
         if (msg.ParseFromString(data)) 
         {
-            GPINFO("Received SensorDataBatch on {}: batch_id={}, source={}, readings={}",
+            GPINFO("Received SensorDataBatchMsg on {}: batch_id={}, source={}, readings={}",
                    topic, msg.batch_id(), msg.source_system(), msg.readings_size());
             
             for (int i = 0; i < msg.readings_size(); ++i)
@@ -83,17 +84,17 @@ int main(int argc, char* argv[])
         } 
         else 
         {
-            GPERROR("Failed to parse SensorDataBatch");
+            GPERROR("Failed to parse SensorDataBatchMsg");
         }
     });
 
     // Subscribe to Command messages
     sub.subscribe("Command", [](const std::string &topic, const std::string &data)
     {
-        messages::Command msg;
+        messages::CommandMsg msg;
         if (msg.ParseFromString(data)) 
         {
-            GPINFO("Received Command on {}: id={}, type={}, target={}, issuer={}",
+            GPINFO("Received CommandMsg on {}: id={}, type={}, target={}, issuer={}",
                    topic, msg.command_id(), static_cast<int>(msg.type()), 
                    msg.target(), msg.issuer());
             
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
         } 
         else 
         {
-            GPERROR("Failed to parse Command");
+            GPERROR("Failed to parse CommandMsg");
         }
     });
 
