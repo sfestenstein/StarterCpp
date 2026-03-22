@@ -287,8 +287,7 @@ struct OmniscopeApp::Impl
             sendTopicList(conn);
          })
          .onclose([this](crow::websocket::connection &conn,
-                         const std::string & /*reason*/,
-                         unsigned short /*code*/) {
+                         const std::string & /*reason*/) {
             GPINFO("Omniscope: WebSocket client disconnected");
             std::lock_guard lock(wsMutex);
             wsConnections.erase(&conn);

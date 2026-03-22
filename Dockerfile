@@ -180,6 +180,18 @@ RUN git clone --depth 1 --branch ${CYCLONEDDS_CXX_VERSION} \
     && ldconfig \
     && rm -rf /tmp/cyclonedds-cxx
 
+# ---- Fix CycloneDDS C++ 0.10.5 headers for GCC 13+ / C++20 ----------------
+# The ~Class<T>() destructor syntax is rejected by GCC 13 in C++20 mode.
+# Fixed upstream in CycloneDDS-CXX >= 0.11.0.
+RUN sed -i 's/~Reference<DELEGATE>()/~Reference()/' \
+      /usr/local/include/ddscxx/dds/core/detail/ReferenceImpl.hpp \
+    && sed -i 's/~Topic<T>()/~Topic()/' \
+      /usr/local/include/ddscxx/dds/topic/detail/TTopicImpl.hpp \
+    && sed -i 's/~DataReader<T>()/~DataReader()/' \
+      /usr/local/include/ddscxx/dds/sub/detail/TDataReaderImpl.hpp \
+    && sed -i 's/~DataWriter<T>()/~DataWriter()/' \
+      /usr/local/include/ddscxx/dds/pub/detail/DataWriterImpl.hpp
+
 # ---- Crow (C++ HTTP/WebSocket framework) ------------------------------------
 RUN git clone --depth 1 --branch ${CROW_VERSION} \
       https://github.com/CrowCpp/Crow.git /tmp/crow \
