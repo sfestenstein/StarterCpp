@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+
+# Conan cache (not used in container builds)
+.conan/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Git
+.git/
+.gitignore
+
+# OS artifacts
+.DS_Store
+Thumbs.db

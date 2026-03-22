@@ -4,6 +4,17 @@ StarterCpp Conan 2.0 Configuration
 This file defines all external dependencies managed by Conan package manager.
 """
 
+import os
+import sys
+
+# Guard: prevent accidental conan install inside a container build
+if os.environ.get("STARTERCPP_CONTAINER_BUILD"):
+   sys.exit(
+      "ERROR: conan install is not needed inside the container.\n"
+      "Dependencies are already installed as system packages.\n"
+      "Use a 'container-*' CMake preset instead (e.g. cmake --preset container-debug)."
+   )
+
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, cmake_layout
 

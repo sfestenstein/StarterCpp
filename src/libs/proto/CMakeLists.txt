@@ -4,10 +4,10 @@
 
 project(ProtoLib CXX)
 
-# Find protobuf compiler from Conan
+# Find protobuf compiler from Conan or system
 find_package(protobuf REQUIRED CONFIG)
 
-# Get protoc from the Conan package folder
+# Get protoc from the Conan package folder (preferred for Conan builds)
 # Conan sets either protobuf_PACKAGE_FOLDER_RELEASE or protobuf_PACKAGE_FOLDER_DEBUG
 if(DEFINED protobuf_PACKAGE_FOLDER_RELEASE)
    set(CONAN_PROTOC_PATH "${protobuf_PACKAGE_FOLDER_RELEASE}/bin/protoc")
@@ -30,8 +30,14 @@ else()
    endif()
 endif()
 
+# Final fallback: system-installed protoc (for container builds)
 if(NOT PROTOC_EXECUTABLE)
-   message(FATAL_ERROR "Could not find protoc executable from Conan package. "
+   find_program(PROTOC_EXECUTABLE protoc)
+endif()
+
+if(NOT PROTOC_EXECUTABLE)
+   message(FATAL_ERROR "Could not find protoc executable. "
+                       "Install protobuf-compiler or use Conan. "
                        "protobuf_PACKAGE_FOLDER_RELEASE=${protobuf_PACKAGE_FOLDER_RELEASE}, "
                        "protobuf_PACKAGE_FOLDER_DEBUG=${protobuf_PACKAGE_FOLDER_DEBUG}, "
                        "Protobuf_PROTOC_EXECUTABLE=${Protobuf_PROTOC_EXECUTABLE}")

@@ -90,6 +90,37 @@
             "ENABLE_COVERAGE": "OFF",
             "ENABLE_SANITIZERS": "OFF"
          }
+      },
+      {
+         "name": "container-default",
+         "hidden": true,
+         "binaryDir": "${sourceDir}/build/${presetName}",
+         "generator": "Ninja",
+         "description": "Base preset for containerized builds (no Conan toolchain)",
+         "cacheVariables": {
+            "CMAKE_POLICY_DEFAULT_CMP0091": "NEW"
+         }
+      },
+      {
+         "name": "container-debug",
+         "displayName": "Container Debug",
+         "inherits": "container-default",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "BUILD_TESTS": "ON",
+            "ENABLE_SANITIZERS": "OFF",
+            "ENABLE_CLANG_TIDY": "OFF"
+         }
+      },
+      {
+         "name": "container-release",
+         "displayName": "Container Release",
+         "inherits": "container-default",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "BUILD_TESTS": "OFF",
+            "ENABLE_SANITIZERS": "OFF"
+         }
       }
    ],
    "buildPresets": [
@@ -112,6 +143,14 @@
       {
          "name": "ci-macos",
          "configurePreset": "ci-macos"
+      },
+      {
+         "name": "container-debug",
+         "configurePreset": "container-debug"
+      },
+      {
+         "name": "container-release",
+         "configurePreset": "container-release"
       }
    ],
    "testPresets": [
@@ -142,6 +181,14 @@
       {
          "name": "ci-macos",
          "configurePreset": "ci-macos",
+         "output": {
+            "outputOnFailure": true,
+            "verbosity": "default"
+         }
+      },
+      {
+         "name": "container-debug",
+         "configurePreset": "container-debug",
          "output": {
             "outputOnFailure": true,
             "verbosity": "default"
