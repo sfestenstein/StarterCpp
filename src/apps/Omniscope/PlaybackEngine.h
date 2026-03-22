@@ -1,8 +1,6 @@
 #ifndef PLAYBACKENGINE_H_
 #define PLAYBACKENGINE_H_
 
-#include "ITransport.h"
-
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -16,7 +14,7 @@ namespace Omniscope
 {
 
 /**
- * @brief Loads recorded IPC traffic and replays it through a transport.
+ * @brief Loads recorded IPC traffic and replays it via a publish callback.
  *
  * Recorded data is kept in memory so a single recording can be played
  * back multiple times without re-uploading.  Playback honours the
@@ -25,10 +23,13 @@ namespace Omniscope
 class PlaybackEngine
 {
 public:
+   /// Called for each replayed message: (topic, jsonData).
+   using PublishCallback    = std::function<void(const std::string &,
+                                                 const std::string &)>;
    using ProgressCallback   = std::function<void(size_t current, size_t total)>;
    using CompletionCallback = std::function<void(bool wasStopped)>;
 
-   explicit PlaybackEngine(ITransport &transport);
+   explicit PlaybackEngine(PublishCallback publish);
    ~PlaybackEngine();
 
    PlaybackEngine(const PlaybackEngine &) = delete;
@@ -54,7 +55,7 @@ public:
    [[nodiscard]] bool isPlaying() const;
 
 private:
-   ITransport &_transport;
+   PublishCallback _publish;
 
    std::vector<std::string> _lines;
    mutable std::mutex _linesMutex;

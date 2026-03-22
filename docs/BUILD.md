@@ -163,8 +163,9 @@ After building:
 ./build/debug/bin/DDSPublisher   # In terminal 2
 
 # Omniscope (web-based traffic inspector)
-./build/debug/bin/Omniscope             # Default: domain 0, port 8080
-./build/debug/bin/Omniscope 1 9090      # Domain 1, port 9090
+./build/debug/bin/Omniscope                     # Default: domain 0, port 8080, Zyre ns "TestZyre"
+./build/debug/bin/Omniscope 1 9090               # Domain 1, port 9090
+./build/debug/bin/Omniscope 0 8080 MyNamespace   # Custom Zyre namespace
 # Open http://localhost:8080 in a browser
 
 # VITA 49.2 utilities

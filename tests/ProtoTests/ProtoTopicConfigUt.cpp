@@ -60,8 +60,8 @@ TEST(ProtoTopicConfigTest, AllTopicNames_NoDuplicates)
 {
    auto names = allTopicNames();
    std::ranges::sort(names);
-   auto [dupBegin, dupEnd] = std::ranges::unique(names);
-   EXPECT_EQ(dupBegin, names.end()) << "Duplicate topic names found in TOPIC_REGISTRY";
+   EXPECT_EQ(std::ranges::adjacent_find(names), names.end())
+      << "Duplicate topic names found in TOPIC_REGISTRY";
 }
 
 TEST(ProtoTopicConfigTest, RegistryIds_NoDuplicates)
@@ -73,8 +73,8 @@ TEST(ProtoTopicConfigTest, RegistryIds_NoDuplicates)
       ids.push_back(entry.id);
    }
    std::ranges::sort(ids);
-   auto [dupBegin, dupEnd] = std::ranges::unique(ids);
-   EXPECT_EQ(dupBegin, ids.end()) << "Duplicate TopicId values found in TOPIC_REGISTRY";
+   EXPECT_EQ(std::ranges::adjacent_find(ids), ids.end())
+      << "Duplicate TopicId values found in TOPIC_REGISTRY";
 }
 
 // ── type-safety enforcement tests ───────────────────────────────────────

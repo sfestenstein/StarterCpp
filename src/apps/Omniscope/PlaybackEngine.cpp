@@ -11,8 +11,8 @@
 namespace Omniscope
 {
 
-PlaybackEngine::PlaybackEngine(ITransport &transport)
-   : _transport(transport)
+PlaybackEngine::PlaybackEngine(PublishCallback publish)
+   : _publish(std::move(publish))
 {
 }
 
@@ -107,9 +107,9 @@ void PlaybackEngine::start(ProgressCallback onProgress,
 
          if (_stopFlag.load()) break;
 
-         // Republish through the transport
+         // Republish through the routed transport
          std::string jsonData = crow::json::wvalue(rec["data"]).dump();
-         _transport.publishFromJson(topic, jsonData);
+         _publish(topic, jsonData);
 
          if (onProgress) onProgress(i + 1, total);
       }

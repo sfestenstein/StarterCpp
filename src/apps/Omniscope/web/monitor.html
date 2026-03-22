@@ -84,9 +84,34 @@ header h1 { font-size: 15px; font-weight: 600; }
 
 .panel-body { flex: 1; overflow-y: auto; }
 
+/* Transport groups */
+.transport-group { margin-bottom: 2px; }
+.transport-header {
+   padding: 6px 12px;
+   font-size: 11px;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   background: var(--surface);
+   border-bottom: 1px solid var(--border);
+   display: flex;
+   align-items: center;
+   gap: 6px;
+}
+.transport-tag {
+   font-size: 9px;
+   padding: 1px 6px;
+   border-radius: 8px;
+   font-weight: 700;
+   letter-spacing: 0.3px;
+}
+.transport-tag.dds  { background: #89b4fa; color: var(--bg); }
+.transport-tag.zyre { background: #a6e3a1; color: var(--bg); }
+.transport-tag.default { background: var(--border); color: var(--muted); }
+
 /* Topics */
 .topic-item {
-   padding: 8px 12px;
+   padding: 8px 12px 8px 20px;
    cursor: pointer;
    display: flex;
    justify-content: space-between;
@@ -253,7 +278,7 @@ footer {
 </div>
 
 <!-- Load recording file input (hidden) -->
-<input type="file" id="loadRecFile" accept=".ddsrec" style="display:none"
+<input type="file" id="loadRecFile" accept=".dat" style="display:none"
        onchange="uploadRecording(event)">
 
 <script>
@@ -334,9 +359,10 @@ function send(obj) {
 function handleTopicList(topicArr) {
    for (const t of topicArr) {
       if (!topics[t.name]) {
-         topics[t.name] = { subscribed: t.subscribed, count: 0 };
+         topics[t.name] = { subscribed: t.subscribed, transport: t.transport, count: 0 };
       } else {
          topics[t.name].subscribed = t.subscribed;
+         topics[t.name].transport = t.transport;
       }
    }
    renderTopics();
@@ -345,17 +371,42 @@ function handleTopicList(topicArr) {
 function renderTopics() {
    const el = document.getElementById('topicsList');
    el.innerHTML = '';
+
+   // Group topics by transport
+   const groups = {};
    for (const [name, info] of Object.entries(topics).sort()) {
-      const div = document.createElement('div');
-      div.className = 'topic-item';
-      div.innerHTML = `
-         <span class="topic-name">${esc(name)}</span>
-         <span class="topic-badge ${info.subscribed ? 'subscribed' : ''}">
-            ${info.subscribed ? 'SUB' : 'OFF'}
-         </span>`;
-      div.oncontextmenu = (e) => { e.preventDefault(); showCtxMenu(e, name); };
-      div.onclick = () => toggleSubscribe(name);
-      el.appendChild(div);
+      const tr = info.transport || 'Unknown';
+      if (!groups[tr]) groups[tr] = [];
+      groups[tr].push({ name, info });
+   }
+
+   for (const [transport, items] of Object.entries(groups).sort()) {
+      const tagClass = transport.toLowerCase();
+      const group = document.createElement('div');
+      group.className = 'transport-group';
+
+      // Section header with colored tag
+      const hdr = document.createElement('div');
+      hdr.className = 'transport-header';
+      hdr.innerHTML = `<span class="transport-tag ${esc(tagClass)}">${esc(transport)}</span>`
+                    + ` ${items.length} topic${items.length !== 1 ? 's' : ''}`;
+      group.appendChild(hdr);
+
+      // Topic rows
+      for (const { name, info } of items) {
+         const div = document.createElement('div');
+         div.className = 'topic-item';
+         div.innerHTML = `
+            <span class="topic-name">${esc(name)}</span>
+            <span class="topic-badge ${info.subscribed ? 'subscribed' : ''}">
+               ${info.subscribed ? 'SUB' : 'OFF'}
+            </span>`;
+         div.oncontextmenu = (e) => { e.preventDefault(); showCtxMenu(e, name); };
+         div.onclick = () => toggleSubscribe(name);
+         group.appendChild(div);
+      }
+
+      el.appendChild(group);
    }
 }
 

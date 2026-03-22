@@ -25,7 +25,7 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 │  │                        Omniscope                                         │   │
 │  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐     │   │
 │  │  │ OmniscopeApp  │  │PlaybackEngine│  │ ITransport (DDS, Zyre…) │     │   │
-│  │  │ (Crow server) │  │ (recording)  │  │ TransportDds            │     │   │
+│  │  │ (Crow server) │  │ (recording)  │  │ TransportDds, TransportZyre│  │   │
 │  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                               │├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
@@ -38,7 +38,7 @@ StarterCpp is designed as a production-ready C++ project template that demonstra
 │  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │                        CycloneDDS Library (INTERFACE)                     │  │
+│  │                        CycloneDDS Library (STATIC)                       │  │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐    │  │
 │  │  │ DDSTopicConfig │  │ DDSPublisher<T>│  │ DDSSubscriber<T>        │    │  │
 │  │  │ (QoS registry) │  │ (header-only)  │  │ (header-only, polling)  │    │  │
@@ -137,21 +137,33 @@ The PubSub library provides two messaging patterns:
 
 The protocol buffer library compiles `.proto` files from `src/libs/proto/proto-messages/` into C++ classes:
 
-- **sensor_data.proto**: Sensor readings with metadata, location, and batching
-- **commands.proto**: Command/response pattern for RPC
-- **configuration.proto**: Application configuration structures
+- **sensor_reading.proto**: Individual sensor readings with metadata and location
+- **sensor_data_batch.proto**: Batched sensor readings
+- **command.proto**: Command messages for RPC
+- **command_response.proto**: Command response messages
+- **application_config.proto**: Application configuration structures
+- **message_header.proto**: Common message header with timestamp, source, and sequence
+
+The library also provides:
+
+- **ProtoTopicConfig**: Constexpr `TopicId` enum with compile-time string registry mapping topic IDs to protobuf type names
+- **ProtoJsonDispatch**: Runtime dispatch between `TopicId` and concrete protobuf types, providing `toJson()`, `fromJson()`, `fromJsonToMessage()`, and `createMessage()` factory functions
 
 #### CycloneDDS Library (`src/libs/CycloneDDS/`)
 
-The CycloneDDS library provides topic-based DDS publish-subscribe via Eclipse Cyclone DDS. All wrapper classes are header-only; the CMake target (`CycloneDDSLib`) is an INTERFACE library.
+The CycloneDDS library provides topic-based DDS publish-subscribe via Eclipse Cyclone DDS. The CMake target (`CycloneDDSLib`) is a STATIC library that wraps header-only template publishers/subscribers with generated IDL types and JSON helpers.
 
 - **DDSTopicConfig**: Central registry mapping topic names to `DataWriterQos` and `DataReaderQos`, guaranteeing RxO (Request-vs-Offered) compatibility between publishers and subscribers.
+
+- **CycloneDDSConfig**: DDS domain and participant configuration.
 
 - **DDSPublisher\<T\>**: Template publisher that lazily creates `DataWriter` instances per topic. QoS is looked up from `DDSTopicConfig` automatically.
 
 - **DDSSubscriber\<T\>**: Template subscriber with a background polling thread. Subscribes to topics with user callbacks; reader QoS is looked up from `DDSTopicConfig`.
 
-- **DDSMessages**: IDL-generated C++ types from `idl/` directory (SensorData, Command, TrackData), compiled via `IDLCXX_GENERATE()`.
+- **DDSMessages**: IDL-generated C++ types from `idl/` directory (SensorData, Command, TrackData, MessageHeader), compiled via `IDLCXX_GENERATE()`.
+
+- **DdsJsonHelpers.h**: Auto-generated (by `generate_dds_json_helpers.py`) pretty-print and JSON conversion helpers for all IDL types. Generated into the build directory at configure time.
 
 #### Vita49_2 Library (`src/libs/Vita49_2/`)
 
@@ -213,16 +225,17 @@ Demonstrates:
 #### Omniscope (`src/apps/Omniscope/`)
 
 A web-based traffic inspector for IPC pub/sub transports:
-- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `TransportDds` and is extensible to Zyre, ZMQ, etc.
+- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `TransportDds` (Cyclone DDS) and `TransportZyre` (Zyre + protobuf)
 - **OmniscopeApp** — orchestrates transports, Crow HTTP/WebSocket server, recording, and playback (pImpl pattern)
-- **PlaybackEngine** — loads `.ddsrec` files and replays them in a background thread with original inter-message timing (capped at 5 s per gap), publishing back through the transport
+- **PlaybackEngine** — loads `.dat` files and replays them in a background thread with original inter-message timing (capped at 5 s per gap), publishing via a routing callback that dispatches to the originating transport
 - **TransportDds** — concrete transport using Eclipse Cyclone DDS; pImpl hides all DDS headers
+- **TransportZyre** — concrete transport using Zyre with protobuf serialization; pImpl hides Zyre/proto headers; uses `ProtoJsonDispatch` for binary↔JSON conversion
 - **CrowCompat.h** — C++20 / libc++ compatibility shim (atomic `operator<<`) for Crow 1.3.x
-- **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, load/playback with progress bar
+- **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, load/playback with progress bar, and topics grouped by transport with colored badges
 
 Usage:
 ```bash
-./build/debug/bin/Omniscope [domain_id] [http_port]
+./build/debug/bin/Omniscope [domain_id] [http_port] [zyre_namespace]
 # Open http://localhost:8080
 ```
 

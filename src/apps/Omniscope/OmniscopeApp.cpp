@@ -152,7 +152,7 @@ struct OmniscopeApp::Impl
       auto now = std::chrono::system_clock::now();
       auto epochSec = std::chrono::duration_cast<std::chrono::seconds>(
          now.time_since_epoch()).count();
-      recFilename = "omniscope_recording_" + std::to_string(epochSec) + ".ddsrec";
+      recFilename = "omni_" + std::to_string(epochSec) + ".dat";
 
       recFile.open(recFilename, std::ios::out | std::ios::trunc);
       recording = true;
@@ -256,7 +256,7 @@ struct OmniscopeApp::Impl
          return resp;
       });
 
-      // Upload a .ddsrec recording for playback
+      // Upload a recording (.dat) for playback
       CROW_ROUTE(crowApp, "/playback/load")
          .methods(crow::HTTPMethod::POST)
       ([this](const crow::request &req) {
@@ -324,7 +324,13 @@ void OmniscopeApp::run()
 {
    assert(!_impl->transports.empty() && "At least one transport must be added before run()");
 
-   _impl->playback.emplace(*_impl->transports.front());
+   _impl->playback.emplace([this](const std::string &topic,
+                                   const std::string &jsonData)
+   {
+      auto *transport = _impl->findTransport(topic);
+      if (transport)
+         transport->publishFromJson(topic, jsonData);
+   });
    _impl->setupRoutes();
 
    GPINFO("Omniscope starting on http://localhost:{}", _impl->httpPort);

@@ -215,8 +215,9 @@ int myFunction(int param1, std::string_view param2);
 
 ### Adding a New CycloneDDS Class
 
-1. Create header: `src/libs/CycloneDDS/NewClass.h` (header-only; CycloneDDSLib is INTERFACE)
-2. Create test: `tests/DDSTests/NewClassUt.cpp`
+1. Create header: `src/libs/CycloneDDS/NewClass.h`
+2. Create source: `src/libs/CycloneDDS/NewClass.cpp` (CycloneDDSLib is a STATIC library)
+3. Create test: `tests/DDSTests/NewClassUt.cpp`
 3. Tests are auto-discovered via `file(GLOB)` in `tests/DDSTests/CMakeLists.txt`
 4. Re-run CMake configure to pick up new files
 
@@ -261,13 +262,14 @@ int myFunction(int param1, std::string_view param2);
 ### Adding a New Omniscope Transport
 
 1. Create `src/apps/Omniscope/NewTransport.h` and `NewTransport.cpp`
-2. Implement the `Omniscope::ITransport` interface (see `TransportDds` for reference)
-3. In `src/apps/Omniscope/main.cpp`, instantiate the transport and push it into the transports vector:
+2. Implement the `Omniscope::ITransport` interface (see `TransportDds` or `TransportZyre` for reference)
+3. In `src/apps/Omniscope/main.cpp`, instantiate the transport and register it:
    ```cpp
    auto newTransport = std::make_unique<Omniscope::NewTransport>(/* ... */);
-   transports.push_back(std::move(newTransport));
+   app.addTransport(std::move(newTransport));
    ```
-4. Rebuild — the monitor automatically discovers topics from all registered transports
+4. Source files are auto-discovered via `file(GLOB)` in `Omniscope/CMakeLists.txt`
+5. Rebuild — the monitor automatically discovers topics from all registered transports
 
 ## Testing Guidelines
 
@@ -346,7 +348,7 @@ docs(readme): update build instructions
 
 The GitHub Actions workflow:
 
-1. **Build**: Compiles on Linux and Windows (MinGW)
+1. **Build**: Compiles on Linux
 2. **Test**: Runs all unit tests
 3. **Coverage**: Generates and uploads coverage reports
 4. **Quality**: Checks code formatting

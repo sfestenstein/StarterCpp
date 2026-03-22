@@ -27,15 +27,23 @@ graph TD
         App[OmniscopeApp<br/>Crow HTTP + WS]
         PE[PlaybackEngine]
         DT[TransportDds]
+        ZT[TransportZyre]
 
         App -- "subscribe / unsubscribe<br/>record / playback" --> DT
+        App -- "subscribe / unsubscribe<br/>record / playback" --> ZT
         App -- "start / stop / load" --> PE
-        PE -- "publishFromJson()" --> DT
+        PE -- "publish callback" --> App
+        App -- "route to transport" --> DT
+        App -- "route to transport" --> ZT
     end
 
     subgraph "DDS Domain"
         SP[SensorTopic]
         TP[TrackTopic]
+    end
+
+    subgraph "Zyre Network"
+        ZP[Zyre Peers]
     end
 
     UI -- "HTTP GET /" --> App
@@ -45,6 +53,8 @@ graph TD
     DT -- "DDSSubscriber poll" --> TP
     DT -- "DDSPublisher write" --> SP
     DT -- "DDSPublisher write" --> TP
+    ZT -- "ZyreSubscriber" --> ZP
+    ZT -- "ZyrePublisher" --> ZP
 ```
 
 ## Class Diagram
@@ -69,17 +79,27 @@ classDiagram
         +publishFromJson(topic, jsonData)
     }
 
+    class TransportZyre {
+        -Impl* _impl
+        +TransportZyre(zyreNamespace)
+        +subscribe(topic, callback)
+        +unsubscribe(topic)
+        +publishFromJson(topic, jsonData)
+    }
+
     class OmniscopeApp {
         -Impl* _impl
-        +OmniscopeApp(transports, httpPort)
+        +OmniscopeApp(httpPort)
+        +addTransport(unique_ptr~ITransport~)
         +run()
     }
 
     class PlaybackEngine {
-        -ITransport& _transport
+        -PublishCallback _publish
         -vector~string~ _lines
         -thread _thread
         -condition_variable _stopCv
+        +PlaybackEngine(PublishCallback)
         +loadRecording(body) size_t
         +start(onProgress, onComplete)
         +stop()
@@ -87,9 +107,10 @@ classDiagram
     }
 
     ITransport <|.. TransportDds : implements
+    ITransport <|.. TransportZyre : implements
     OmniscopeApp o-- ITransport : transports
     OmniscopeApp *-- PlaybackEngine
-    PlaybackEngine --> ITransport : publishes via
+    PlaybackEngine --> OmniscopeApp : publishes via callback
 ```
 
 ## Data Flow
@@ -101,7 +122,9 @@ sequenceDiagram
     participant B as Browser
     participant App as OmniscopeApp
     participant DT as TransportDds
+    participant ZT as TransportZyre
     participant DDS as DDS Domain
+    participant ZN as Zyre Network
 
     B->>App: WebSocket {"type":"subscribe","topic":"SensorTopic"}
     App->>DT: subscribe("SensorTopic", callback)
@@ -109,6 +132,13 @@ sequenceDiagram
     DDS-->>DT: SensorReading sample
     DT-->>App: callback(topic, json)
     App-->>B: WebSocket {"type":"message","topic":"SensorTopic","data":{...}}
+
+    B->>App: WebSocket {"type":"subscribe","topic":"SensorReading"}
+    App->>ZT: subscribe("SensorReading", callback)
+    ZT->>ZN: ZyreSubscriber listen
+    ZN-->>ZT: protobuf message
+    ZT-->>App: callback(topic, json)
+    App-->>B: WebSocket {"type":"message","topic":"SensorReading","data":{...}}
 ```
 
 ### Recording & Playback
@@ -118,22 +148,22 @@ sequenceDiagram
     participant B as Browser
     participant App as OmniscopeApp
     participant PE as PlaybackEngine
-    participant DT as TransportDds
 
     Note over B,App: Recording
     B->>App: {"type":"record_start"}
-    App-->>App: Open .ddsrec file, flag recording=true
+    App-->>App: Open .dat file, flag recording=true
     Note right of App: Each incoming message is<br/>appended as JSON-Lines
 
     B->>App: {"type":"record_stop"}
-    App-->>B: {"type":"recording_stopped","filename":"Omniscope_recording_*.ddsrec"}
+    App-->>B: {"type":"recording_stopped","filename":"omni_*.dat"}
 
-    Note over B,DT: Playback
+    Note over B,PE: Playback
     B->>App: POST /playback/load (file body)
     App->>PE: loadRecording(body)
     B->>App: {"type":"playback_start"}
     App->>PE: start(onProgress, onComplete)
-    PE->>DT: publishFromJson(topic, jsonData)
+    PE->>App: publish callback(topic, jsonData)
+    App->>App: route to originating transport
     PE-->>App: onProgress(current, total)
     App-->>B: {"type":"playback_progress","current":42,"total":100}
     PE-->>App: onComplete(false)
@@ -152,6 +182,7 @@ flowchart TD
     DTOR --> DTOR_PB["~PlaybackEngine — stop() (no-op)"]
     DTOR --> DTOR_CROW["~crow::SimpleApp"]
     DTOR --> DTOR_DT["~TransportDds<br/>stop DDS subscribers"]
+    DTOR --> DTOR_ZT["~TransportZyre<br/>stop Zyre subscriber/publisher"]
 ```
 
 Crow's built-in signal handlers are cleared via `signal_clear()` before
@@ -162,11 +193,12 @@ rather than blocking up to 5 seconds.
 
 ## Transport Extensibility
 
-Omniscope is designed around the `ITransport` interface. Adding a new
-transport (e.g. Zyre, ZMQ, MQTT) requires:
+Omniscope is designed around the `ITransport` interface. Two transports
+are included: `TransportDds` (Cyclone DDS) and `TransportZyre` (Zyre +
+protobuf). Adding a new transport (e.g. ZMQ, MQTT) requires:
 
 1. Create a class that implements `ITransport`.
-2. Instantiate it in `main.cpp` and push it into the transports vector.
+2. Instantiate it in `main.cpp` and register via `app.addTransport()`.
 3. Omniscope discovers topics automatically via `topicNames()`.
 
 No changes to `OmniscopeApp`, `PlaybackEngine`, or the web UI are
@@ -208,11 +240,11 @@ objects with a `"type"` field:
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/` | Serves the embedded single-page HTML UI |
-| `POST` | `/playback/load` | Upload a `.ddsrec` JSON-Lines file for playback |
+| `POST` | `/playback/load` | Upload a `.dat` JSON-Lines file for playback |
 
 ## Recording File Format
 
-Recordings are stored as JSON-Lines (`.ddsrec`), one message per line:
+Recordings are stored as JSON-Lines (`.dat`), one message per line:
 
 ```json
 {"topic":"SensorTopic","timestamp":"2026-03-14T12:00:00.123Z","timestamp_ms":1773576000123,"data":{...}}
@@ -222,10 +254,11 @@ Recordings are stored as JSON-Lines (`.ddsrec`), one message per line:
 
 ```
 src/apps/Omniscope/
-├── CMakeLists.txt          # Build config, HTML embedding, link Crow + CycloneDDS
+├── CMakeLists.txt          # Build config, HTML embedding, link Crow + CycloneDDS + PubSubLib + ProtoLib
 ├── CrowCompat.h            # C++20 / libc++ compatibility shim for Crow
 ├── ITransport.h            # Abstract transport interface
 ├── TransportDds.h/.cpp     # Cyclone DDS transport (pImpl)
+├── TransportZyre.h/.cpp    # Zyre protobuf transport (pImpl)
 ├── PlaybackEngine.h/.cpp   # Recording playback with original timing
 ├── OmniscopeApp.h/.cpp     # Crow HTTP/WS orchestrator (pImpl)
 ├── main.cpp                # Entry point, argument parsing
@@ -239,11 +272,14 @@ src/apps/Omniscope/
 # Build
 cmake --build --preset debug
 
-# Run with defaults (domain 0, port 8080)
+# Run with defaults (domain 0, port 8080, Zyre namespace "TestZyre")
 ./build/debug/bin/Omniscope
 
 # Run with custom DDS domain and HTTP port
 ./build/debug/bin/Omniscope 1 9090
+
+# Run with custom Zyre namespace
+./build/debug/bin/Omniscope 0 8080 MyNamespace
 
 # Open in browser
 open http://localhost:8080
@@ -252,7 +288,7 @@ open http://localhost:8080
 From the browser UI you can:
 
 1. **Subscribe** to any available topic to see live messages.
-2. **Record** traffic to a `.ddsrec` file.
+2. **Record** traffic to a `.dat` file.
 3. **Upload** a previous recording and **play it back** through the
    transport, re-publishing each message with original timing.
 4. **Stop** playback at any time.

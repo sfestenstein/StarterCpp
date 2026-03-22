@@ -25,6 +25,7 @@ cmake-build-*/
 # Generated files
 *.pb.h
 *.pb.cc
+*.html.inc
 compile_commands.json
 CMakeUserPresets.json
 

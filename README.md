@@ -106,8 +106,9 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 ./build/debug/bin/DDSPublisher   # In terminal 2
 
 # Omniscope (web-based traffic inspector)
-./build/debug/bin/Omniscope             # Default: domain 0, port 8080
-./build/debug/bin/Omniscope 1 9090      # Domain 1, port 9090
+./build/debug/bin/Omniscope                     # Default: domain 0, port 8080, Zyre ns "TestZyre"
+./build/debug/bin/Omniscope 1 9090               # Domain 1, port 9090
+./build/debug/bin/Omniscope 0 8080 MyNamespace   # Custom Zyre namespace
 # Open http://localhost:8080 in a browser
 
 # VITA 49.2 utilities
@@ -160,7 +161,7 @@ Managed by Conan 2.0:
 
 ## Omniscope
 
-Omniscope is a browser-based traffic inspector for any pub/sub transport in the project. It ships with a DDS transport out of the box and is designed to be extended with Zyre, ZMQ, or custom transports.
+Omniscope is a browser-based traffic inspector for any pub/sub transport in the project. It ships with DDS and Zyre transports out of the box and is designed to be extended with ZMQ or custom transports.
 
 ### Quick Start
 
@@ -170,6 +171,9 @@ Omniscope is a browser-based traffic inspector for any pub/sub transport in the 
 
 # With custom domain ID and port
 ./build/debug/bin/Omniscope 1 9090
+
+# With custom Zyre namespace
+./build/debug/bin/Omniscope 0 8080 MyNamespace
 ```
 
 Open **http://localhost:8080** in a browser.
@@ -177,9 +181,9 @@ Open **http://localhost:8080** in a browser.
 ### Features
 
 - **Live topic subscription** — click a topic in the left pane to subscribe; messages stream in real-time via WebSocket
-- **3-pane UI** — Topics | Messages | Detail with dark-theme monospace interface
-- **Recording** — click Record to capture messages to a `.ddsrec` (JSON Lines) file
-- **Playback** — load a `.ddsrec` file and replay it with original timing (capped at 5 s per gap), republishing to DDS so other subscribers see the data
+- **3-pane UI** — Topics | Messages | Detail with dark-theme monospace interface, with topics grouped by transport
+- **Recording** — click Record to capture messages to a `.dat` (JSON Lines) file
+- **Playback** — load a `.dat` file and replay it with original timing (capped at 5 s per gap), republishing through the originating transport so other subscribers see the data
 - **Progress indicator** — thin accent progress bar and footer percentage during playback
 - **Multi-transport architecture** — `ITransport` interface allows plugging in new transports without changing the monitor core
 
@@ -191,6 +195,7 @@ The monitor lives in `src/apps/Omniscope/` and is structured around a clean tran
 |------|---------|
 | `ITransport.h` | Abstract transport interface |
 | `TransportDds.h/.cpp` | Eclipse Cyclone DDS transport (pImpl) |
+| `TransportZyre.h/.cpp` | Zyre protobuf transport (pImpl) |
 | `PlaybackEngine.h/.cpp` | Recording load + threaded playback |
 | `OmniscopeApp.h/.cpp` | Crow HTTP/WebSocket orchestrator (pImpl) |
 | `CrowCompat.h` | C++20 / libc++ compatibility shim for Crow |
@@ -199,13 +204,13 @@ The monitor lives in `src/apps/Omniscope/` and is structured around a clean tran
 
 ### Adding a New Transport
 
-1. Create a class that implements `Omniscope::ITransport` (see `TransportDds` for reference)
-2. Instantiate it in `main.cpp` and push it into the transports vector
+1. Create a class that implements `Omniscope::ITransport` (see `TransportDds` or `TransportZyre` for reference)
+2. Instantiate it in `main.cpp` and register it via `app.addTransport()`
 3. Rebuild — the monitor automatically discovers topics from all registered transports
 
 ```cpp
-auto zyreTransport = std::make_unique<Omniscope::ZyreTransport>(/* ... */);
-transports.push_back(std::move(zyreTransport));
+auto myTransport = std::make_unique<Omniscope::MyTransport>(/* ... */);
+app.addTransport(std::move(myTransport));
 ```
 
 ## License

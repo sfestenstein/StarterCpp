@@ -20,6 +20,7 @@ StarterCpp/
 │   │   ├── Omniscope/          # Web-based IPC traffic inspector
 │   │   │   ├── ITransport.h          # Abstract transport interface
 │   │   │   ├── TransportDds.h/.cpp    # DDS transport (pImpl)
+│   │   │   ├── TransportZyre.h/.cpp   # Zyre protobuf transport (pImpl)
 │   │   │   ├── PlaybackEngine.h/.cpp # Recording playback engine
 │   │   │   ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
 │   │   │   ├── CrowCompat.h          # C++20 atomic shim for Crow
@@ -50,12 +51,15 @@ StarterCpp/
 │       │   └── HighBandwidthSubscriber.h/.cpp  # UDP multicast subscriber
 │       ├── CycloneDDS/     # DDS pub/sub library (Eclipse Cyclone DDS)
 │       │   ├── DDSTopicConfig.h       # Centralized topic/QoS registry
+│       │   ├── CycloneDDSConfig.h/.cpp # DDS domain/participant configuration
 │       │   ├── DDSPublisher.h         # Template DDS publisher (header-only)
 │       │   ├── DDSSubscriber.h        # Template DDS subscriber (header-only)
+│       │   ├── generate_dds_json_helpers.py  # IDL-to-JSON helper generator
 │       │   └── idl/                   # IDL message definitions
 │       │       ├── SensorData.idl
 │       │       ├── Command.idl
-│       │       └── TrackData.idl
+│       │       ├── TrackData.idl
+│       │       └── MessageHeader.idl
 │       ├── Vita49_2/       # VITA 49.2 signal data packet codec
 │       │   ├── PacketHeader.h/.cpp
 │       │   ├── SignalDataPacket.h/.cpp
@@ -64,12 +68,18 @@ StarterCpp/
 │       │   ├── Vita49Types.h
 │       │   └── ByteSwap.h
 │       └── proto/          # Protocol buffer library
+│           ├── ProtoTopicConfig.h        # Constexpr topic enum + string registry
+│           ├── ProtoJsonDispatch.h       # Runtime proto binary↔JSON dispatch
 │           └── proto-messages/ # .proto source files
-│               ├── sensor_data.proto
-│               ├── commands.proto
-│               └── configuration.proto
+│               ├── sensor_reading.proto
+│               ├── sensor_data_batch.proto
+│               ├── command.proto
+│               ├── command_response.proto
+│               ├── application_config.proto
+│               └── message_header.proto
 ├── tests/                  # Unit tests
 │   ├── CommonUtilsTests/   # Tests for CommonUtils library
+│   ├── ProtoTests/         # Tests for Proto library
 │   ├── PubSubTests/        # Tests for PubSub library
 │   ├── DDSTests/           # Tests for CycloneDDS library
 │   └── Vita49_2Tests/      # Tests for Vita49_2 library
@@ -155,8 +165,9 @@ private:
 
 ### Adding a New CycloneDDS Class
 
-1. Create `src/libs/CycloneDDS/NewClass.h` (header-only; CycloneDDSLib is INTERFACE)
-2. Create `tests/DDSTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
+1. Create `src/libs/CycloneDDS/NewClass.h`
+2. Create `src/libs/CycloneDDS/NewClass.cpp` (CycloneDDSLib is a STATIC library)
+3. Create `tests/DDSTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
 3. Re-run CMake configure to pick up new files
 
 ### Adding a New DDS IDL Message
@@ -221,7 +232,7 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 - `CommonUtils` - CommonUtils shared library
 - `PubSubLib` - PubSub shared library (Zyre and HighBandwidth messaging)
 - `ProtoLib` - Protobuf library (alias: `StarterCpp::proto`)
-- `CycloneDDSLib` - DDS library (INTERFACE, header-only wrappers + generated IDL types)
+- `CycloneDDSLib` - DDS library (STATIC, wrappers + generated IDL types + JSON helpers)
 - `DDSMessages` - Generated IDL C++ types (linked by CycloneDDSLib)
 - `Vita49_2` - VITA 49.2 signal data packet codec shared library
 - `ZyrePublisher` - Zyre publisher test application
@@ -235,11 +246,13 @@ cmake --build --preset coverage --target CommonUtilsCoverage
 - `Vita49FileCodec` - VITA 49.2 file codec application
 - `Omniscope` - Web-based IPC traffic inspector (Crow HTTP/WebSocket)
 - `CommonUtilsTests` - CommonUtils unit tests
+- `ProtoTests` - Proto unit tests
 - `PubSubTests` - PubSub unit tests
 - `DDSTests` - DDS unit tests
 - `Vita49_2Tests` - VITA 49.2 unit tests
-- `CommonUtilsCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
-- `PubSubCoverage` - Coverage report target (when `ENABLE_COVERAGE=ON`)
+- `coverage` - Unified coverage report target (when `ENABLE_COVERAGE=ON`)
+- `CommonUtilsCoverage` - CommonUtils coverage report target (when `ENABLE_COVERAGE=ON`)
+- `PubSubCoverage` - PubSub coverage report target (when `ENABLE_COVERAGE=ON`)
 
 ## Dependencies Available
 
