@@ -30,6 +30,9 @@ ARG CYCLONEDDS_VERSION=0.10.5
 ARG CYCLONEDDS_CXX_VERSION=0.10.5
 ARG CROW_VERSION=v1.2.0
 ARG GTEST_VERSION=v1.14.0
+ARG RE2_VERSION=2023-03-01
+ARG CARES_VERSION=v1.34.6
+ARG GRPC_VERSION=v1.67.1
 
 # ---- Prevent interactive prompts -------------------------------------------
 ENV DEBIAN_FRONTEND=noninteractive
@@ -49,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       pkg-config \
       libsystemd-dev \
       libasio-dev \
+      libssl-dev \
       lcov \
       gcovr \
       clang-tidy \
@@ -83,6 +87,61 @@ RUN git clone --depth 1 --branch ${PROTOBUF_VERSION} \
     && cmake --install /tmp/protobuf/build \
     && ldconfig \
     && rm -rf /tmp/protobuf
+
+# ---- re2 (required by gRPC) -------------------------------------------------
+RUN git clone --depth 1 --branch ${RE2_VERSION} \
+      https://github.com/google/re2.git /tmp/re2 \
+    && cmake -S /tmp/re2 -B /tmp/re2/build -G Ninja \
+       -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_CXX_STANDARD=20 \
+       -DCMAKE_INSTALL_PREFIX=/usr/local \
+       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+       -DRE2_BUILD_TESTING=OFF \
+    && cmake --build /tmp/re2/build \
+    && cmake --install /tmp/re2/build \
+    && rm -rf /tmp/re2
+
+# ---- c-ares (required by gRPC) ----------------------------------------------
+RUN git clone --depth 1 --branch ${CARES_VERSION} \
+      https://github.com/c-ares/c-ares.git /tmp/c-ares \
+    && cmake -S /tmp/c-ares -B /tmp/c-ares/build -G Ninja \
+       -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_INSTALL_PREFIX=/usr/local \
+       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+       -DCARES_BUILD_TOOLS=OFF \
+       -DCARES_BUILD_TESTS=OFF \
+    && cmake --build /tmp/c-ares/build \
+    && cmake --install /tmp/c-ares/build \
+    && ldconfig \
+    && rm -rf /tmp/c-ares
+
+# ---- gRPC 1.67.1 (needs abseil, protobuf, re2, c-ares, OpenSSL) ------------
+RUN git clone --depth 1 --branch ${GRPC_VERSION} \
+      https://github.com/grpc/grpc.git /tmp/grpc \
+    && cmake -S /tmp/grpc -B /tmp/grpc/build -G Ninja \
+       -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_CXX_STANDARD=20 \
+       -DCMAKE_INSTALL_PREFIX=/usr/local \
+       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+       -DgRPC_INSTALL=ON \
+       -DgRPC_BUILD_TESTS=OFF \
+       -DgRPC_BUILD_CSHARP_EXT=OFF \
+       -DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF \
+       -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF \
+       -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF \
+       -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF \
+       -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF \
+       -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF \
+       -DgRPC_ABSL_PROVIDER=package \
+       -DgRPC_PROTOBUF_PROVIDER=package \
+       -DgRPC_RE2_PROVIDER=package \
+       -DgRPC_CARES_PROVIDER=package \
+       -DgRPC_SSL_PROVIDER=package \
+       -DgRPC_ZLIB_PROVIDER=package \
+    && cmake --build /tmp/grpc/build \
+    && cmake --install /tmp/grpc/build \
+    && ldconfig \
+    && rm -rf /tmp/grpc
 
 # ---- spdlog 1.15.0 (with C++20 std::format) --------------------------------
 RUN git clone --depth 1 --branch ${SPDLOG_VERSION} \

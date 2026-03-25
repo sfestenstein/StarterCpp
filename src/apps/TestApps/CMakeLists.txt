@@ -51,10 +51,25 @@ target_link_libraries(Vita49RoundTripTest
    PRIVATE Vita49_2 CommonUtils
 )
 
+# gRPC Server Test
+add_executable(GrpcServer GrpcServerTest.cpp)
+
+target_link_libraries(GrpcServer
+   PRIVATE GrpcServiceLib CommonUtils
+)
+
+# gRPC Client Test
+add_executable(GrpcClient GrpcClientTest.cpp)
+
+target_link_libraries(GrpcClient
+   PRIVATE GrpcServiceLib CommonUtils
+)
+
 # Set properties
 set_target_properties(
    ZyrePublisher ZyreSubscriber HighBandwidthSubscriber HighBandwidthPublisher
    DDSPublisher DDSSubscriber Vita49RoundTripTest
+   GrpcServer GrpcClient
    PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

@@ -142,6 +142,7 @@ find_package(cppzmq REQUIRED)
 find_package(CycloneDDS REQUIRED)
 find_package(CycloneDDS-CXX REQUIRED)
 find_package(Crow REQUIRED)
+find_package(gRPC REQUIRED)
 
 if(BUILD_TESTS)
    find_package(GTest REQUIRED)
@@ -165,6 +166,7 @@ add_subdirectory(src/libs/proto)
 add_subdirectory(src/libs/PubSub)
 add_subdirectory(src/libs/CycloneDDS)
 add_subdirectory(src/libs/Vita49_2)
+add_subdirectory(src/libs/GrpcService)
 
 # Applications
 add_subdirectory(src/apps)

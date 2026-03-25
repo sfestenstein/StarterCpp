@@ -68,6 +68,9 @@ class StarterCppConan(ConanFile):
       # Crow (lightweight HTTP/WebSocket server for DDS Monitor)
       self.requires("crowcpp-crow/1.3.1")
 
+      # gRPC (Remote Procedure Calls)
+      self.requires("grpc/1.67.1")
+
       # zyre/2.0.1 on Linux/FreeBSD unconditionally depends on libsystemd/255.
       # libsystemd/255 (base) can fail to build against newer kernel headers.
       # Override to a newer 255.x patch release that includes the updated magic list.

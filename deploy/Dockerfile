@@ -24,7 +24,8 @@ RUN bash deploy/fix-cyclonedds-headers.sh
 # Build only the targets needed for deployment (not tests/benchmarks)
 RUN cmake --preset container-release \
     && cmake --build --preset container-release \
-       --target DDSPublisher DDSSubscriber Omniscope ZyrePublisher ZyreSubscriber
+       --target DDSPublisher DDSSubscriber Omniscope ZyrePublisher ZyreSubscriber \
+              GrpcServer GrpcClient
 
 # ---- Stage 2: Slim runtime image -------------------------------------------
 FROM ubuntu:24.04 AS runtime
@@ -49,8 +50,10 @@ COPY --from=builder /workspace/build/container-release/bin/DDSSubscriber  /usr/l
 COPY --from=builder /workspace/build/container-release/bin/Omniscope      /usr/local/bin/
 COPY --from=builder /workspace/build/container-release/bin/ZyrePublisher  /usr/local/bin/
 COPY --from=builder /workspace/build/container-release/bin/ZyreSubscriber /usr/local/bin/
+COPY --from=builder /workspace/build/container-release/bin/GrpcServer     /usr/local/bin/
+COPY --from=builder /workspace/build/container-release/bin/GrpcClient     /usr/local/bin/
 
 RUN ldconfig
 
 # Default: show what's available
-CMD ["bash", "-c", "echo 'Available: DDSPublisher, DDSSubscriber, Omniscope, ZyrePublisher, ZyreSubscriber'; exec bash"]
+CMD ["bash", "-c", "echo 'Available: DDSPublisher, DDSSubscriber, Omniscope, ZyrePublisher, ZyreSubscriber, GrpcServer, GrpcClient'; exec bash"]
