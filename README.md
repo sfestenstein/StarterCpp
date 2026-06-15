@@ -38,6 +38,26 @@ This project is licensed under the [MIT License](LICENSE).
 
 > **Note:** Windows (MinGW) is not currently supported due to Conan + MinGW + ZMQ build issues.
 
+> **Windows Dev Container:** Windows hosts are supported via Docker Desktop + WSL2 by opening the
+> repository in a Dev Container. This avoids MinGW and uses the Linux toolchain inside the
+> container.
+
+### Windows Dev Container Quick Start
+
+```bash
+# 1) Install Docker Desktop and enable the WSL2 backend.
+# 2) Open this folder in VS Code.
+# 3) Run: Dev Containers: Rebuild and Reopen in Container
+
+# Inside the container use container presets (no conan install needed):
+cmake --preset container-debug
+cmake --build --preset container-debug
+ctest --preset container-debug
+```
+
+If the first container build is slow, that is expected because the development image compiles
+dependencies from source.
+
 ### Build Instructions
 
 #### 1. Clone and Setup

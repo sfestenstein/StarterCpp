@@ -53,6 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libsystemd-dev \
       libasio-dev \
       libssl-dev \
+      zlib1g-dev \
       lcov \
       gcovr \
       clang-tidy \

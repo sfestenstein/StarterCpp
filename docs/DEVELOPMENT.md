@@ -4,6 +4,31 @@ This document covers the development workflow, coding standards, and contributio
 
 ## Development Environment Setup
 
+### Windows Host + Dev Containers
+
+For Windows, use Docker Desktop with the WSL2 backend and develop inside the provided Dev
+Container. This project's native Windows MinGW flow is not supported, but Linux toolchains in
+containers are supported.
+
+Prerequisites:
+
+- Docker Desktop installed
+- Docker Desktop setting "Use the WSL 2 based engine" enabled
+- VS Code extension "Dev Containers" installed
+- Repository opened in VS Code from a location available to Docker Desktop/WSL
+
+Recommended first run:
+
+1. In VS Code, run "Dev Containers: Rebuild and Reopen in Container"
+2. Wait for the initial image build to complete
+3. Run container presets:
+   - `cmake --preset container-debug`
+   - `cmake --build --preset container-debug`
+   - `ctest --preset container-debug`
+
+If the container fails during build, check the Dev Containers log first and verify Docker Desktop
+has enough memory and disk allocated for a large first build.
+
 ### Recommended IDE
 
 **Visual Studio Code** with these extensions:

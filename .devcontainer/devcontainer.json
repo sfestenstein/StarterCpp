@@ -1,9 +1,15 @@
 {
    "name": "StarterCpp Dev",
    "build": {
-      "dockerfile": "../Dockerfile"
+      "dockerfile": "../Dockerfile",
+      "context": ".."
    },
    "workspaceFolder": "/workspaces/StarterCpp",
+   "mounts": [
+      "source=startercpp-build,target=/workspaces/StarterCpp/build,type=volume"
+   ],
+   "remoteUser": "root",
+   "postCreateCommand": "cmake --version && ninja --version && g++ --version",
    "customizations": {
       "vscode": {
          "extensions": [
